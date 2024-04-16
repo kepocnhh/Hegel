@@ -2,12 +2,8 @@ package org.kepocnhh.hegel
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.text.BasicText
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
+import org.kepocnhh.hegel.module.foo.FooScreen
 import org.kepocnhh.hegel.util.compose.BackHandler
 
 internal class MainActivity : AppCompatActivity() {
@@ -22,13 +18,7 @@ internal class MainActivity : AppCompatActivity() {
                 BackHandler {
                     finish()
                 }
-                Box(modifier = Modifier.fillMaxSize()) {
-                    BasicText(
-                        modifier = Modifier
-                            .align(Alignment.Center),
-                        text = "${BuildConfig.APPLICATION_ID}\n${BuildConfig.VERSION_NAME}-${BuildConfig.VERSION_CODE}",
-                    )
-                }
+                FooScreen()
             }
         }
     }
