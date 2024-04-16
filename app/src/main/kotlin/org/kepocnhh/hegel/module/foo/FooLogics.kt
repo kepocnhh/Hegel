@@ -7,6 +7,7 @@ import org.kepocnhh.hegel.entity.Foo
 import org.kepocnhh.hegel.module.app.Injection
 import sp.kx.logics.Logics
 import java.util.UUID
+import kotlin.time.Duration.Companion.milliseconds
 
 internal class FooLogics(
     private val injection: Injection,
@@ -31,6 +32,21 @@ internal class FooLogics(
         val items = withContext(injection.contexts.default) {
             injection.locals.foo.toMutableList().also { list ->
                 list.removeIf { it.id == id }
+                injection.locals.foo = list
+            }
+        }
+        _state.emit(State(loading = false, items = items))
+    }
+
+    fun addItem(text: String) = launch {
+        _state.emit(State(loading = true, items = state.value?.items.orEmpty()))
+        val items = withContext(injection.contexts.default) {
+            injection.locals.foo.toMutableList().also { list ->
+                list += Foo(
+                    id = UUID.randomUUID(),
+                    created = System.currentTimeMillis().milliseconds,
+                    text = text,
+                )
                 injection.locals.foo = list
             }
         }
