@@ -2,16 +2,21 @@ package org.kepocnhh.hegel
 
 import android.app.Application
 import androidx.activity.OnBackPressedDispatcher
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.platform.LocalView
 import kotlinx.coroutines.Dispatchers
 import org.kepocnhh.hegel.entity.Foo
 import org.kepocnhh.hegel.module.app.Injection
 import org.kepocnhh.hegel.provider.Contexts
 import org.kepocnhh.hegel.provider.Locals
 import org.kepocnhh.hegel.util.compose.LocalOnBackPressedDispatcher
+import org.kepocnhh.hegel.util.compose.toPaddings
 import sp.kx.logics.Logics
 import sp.kx.logics.LogicsFactory
 import sp.kx.logics.LogicsProvider
@@ -24,6 +29,13 @@ import kotlin.time.Duration.Companion.milliseconds
 
 internal class App : Application() {
     object Theme {
+        private val LocalInsets = staticCompositionLocalOf<PaddingValues> { error("No insets!") }
+
+        val insets: PaddingValues
+            @Composable
+            @ReadOnlyComposable
+            get() = LocalInsets.current
+
         @Composable
         fun Composition(
             onBackPressedDispatcher: OnBackPressedDispatcher,
@@ -31,6 +43,7 @@ internal class App : Application() {
         ) {
             CompositionLocalProvider(
                 LocalOnBackPressedDispatcher provides onBackPressedDispatcher,
+                LocalInsets provides LocalView.current.rootWindowInsets.toPaddings(),
                 content = content,
             )
         }

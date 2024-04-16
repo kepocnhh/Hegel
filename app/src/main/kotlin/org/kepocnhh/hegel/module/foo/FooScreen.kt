@@ -22,7 +22,9 @@ private fun FooScreen(items: List<Foo>) {
             .fillMaxSize()
             .background(Color.White),
     ) {
-        LazyColumn {
+        LazyColumn(
+            contentPadding = App.Theme.insets,
+        ) {
             items.forEachIndexed { index, item ->
                 item(
                     key = item.id,
