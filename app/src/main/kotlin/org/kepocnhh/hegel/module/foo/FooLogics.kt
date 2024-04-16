@@ -6,6 +6,7 @@ import kotlinx.coroutines.withContext
 import org.kepocnhh.hegel.entity.Foo
 import org.kepocnhh.hegel.module.app.Injection
 import sp.kx.logics.Logics
+import java.util.UUID
 
 internal class FooLogics(
     private val injection: Injection,
@@ -21,6 +22,17 @@ internal class FooLogics(
         _state.emit(State(loading = true, items = state.value?.items.orEmpty()))
         val items = withContext(injection.contexts.default) {
             injection.locals.foo
+        }
+        _state.emit(State(loading = false, items = items))
+    }
+
+    fun deleteItem(id: UUID) = launch {
+        _state.emit(State(loading = true, items = state.value?.items.orEmpty()))
+        val items = withContext(injection.contexts.default) {
+            injection.locals.foo.toMutableList().also { list ->
+                list.removeIf { it.id == id }
+                injection.locals.foo = list
+            }
         }
         _state.emit(State(loading = false, items = items))
     }
