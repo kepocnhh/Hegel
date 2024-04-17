@@ -4,6 +4,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import org.kepocnhh.hegel.entity.Foo
+import org.kepocnhh.hegel.entity.ItemsSyncResponse
 import org.kepocnhh.hegel.module.app.Injection
 import sp.kx.logics.Logics
 import java.util.UUID
@@ -16,6 +17,8 @@ internal class FooLogics(
         val loading: Boolean,
         val items: List<Foo>,
     )
+
+    private val logger = injection.loggers.create("[Foo]")
     private val _state = MutableStateFlow<State?>(null)
     val state = _state.asStateFlow()
 
@@ -51,5 +54,34 @@ internal class FooLogics(
             }
         }
         _state.emit(State(loading = false, items = items))
+    }
+
+    private suspend fun onResponse(response: ItemsSyncResponse) {
+        when (response) {
+            ItemsSyncResponse.NotModified -> {
+                _state.emit(State(loading = false, items = state.value?.items.orEmpty()))
+                return
+            }
+        }
+    }
+
+    private suspend fun onResponse(result: Result<ItemsSyncResponse>) {
+        if (result.isFailure) {
+            logger.warning("sync items: " + result.exceptionOrNull())
+            _state.emit(State(loading = false, items = state.value?.items.orEmpty()))
+            return
+        }
+        onResponse(result.getOrThrow())
+    }
+
+    fun syncItems() = launch {
+        logger.debug("sync items...")
+        _state.emit(State(loading = true, items = state.value?.items.orEmpty()))
+        val result = withContext(injection.contexts.default) {
+            runCatching {
+                injection.remotes.itemsSync()
+            }
+        }
+        onResponse(result)
     }
 }

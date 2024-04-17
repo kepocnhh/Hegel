@@ -19,10 +19,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import org.kepocnhh.hegel.App
-import org.kepocnhh.hegel.entity.Foo
 import org.kepocnhh.hegel.module.receiver.ReceiverService
 import org.kepocnhh.hegel.util.http.HttpService
 import java.util.Date
@@ -30,7 +28,7 @@ import java.util.UUID
 
 @Composable
 private fun FooScreen(
-    items: List<Foo>,
+    state: FooLogics.State,
     onDelete: (UUID) -> Unit,
     onAdd: () -> Unit,
     onTransmitter: () -> Unit,
@@ -44,14 +42,14 @@ private fun FooScreen(
         LazyColumn(
             contentPadding = App.Theme.insets,
         ) {
-            items.forEachIndexed { index, item ->
+            state.items.forEachIndexed { index, item ->
                 item(
                     key = item.id,
                 ) {
                     BasicText(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable {
+                            .clickable(enabled = !state.loading) {
                                 onDelete(item.id)
                             },
                         text = "$index) ${item.text}\nid: ${item.id}\ndate: ${Date(item.created.inWholeMilliseconds)}",
@@ -75,7 +73,7 @@ private fun FooScreen(
                     modifier = Modifier
                         .background(Color.Black)
                         .padding(16.dp)
-                        .clickable {
+                        .clickable(enabled = !state.loading) {
                             onTransmitter()
                         },
                     text = "T -->",
@@ -85,18 +83,23 @@ private fun FooScreen(
                     modifier = Modifier
                         .background(Color.Black)
                         .padding(16.dp)
-                        .clickable {
+                        .clickable(enabled = !state.loading) {
                             onReceiver()
                         },
                     text = "<-- R",
                     style = TextStyle(color = Color.White),
                 )
+                if (state.loading) {
+                    BasicText(
+                        text = "loading...",
+                    )
+                }
                 Spacer(modifier = Modifier.weight(1f))
                 BasicText(
                     modifier = Modifier
                         .background(Color.Black)
                         .padding(16.dp)
-                        .clickable {
+                        .clickable(enabled = !state.loading) {
                             onAdd()
                         },
                     text = "+",
@@ -119,13 +122,13 @@ internal fun FooScreen() {
     if (state == null) return
     val context = LocalContext.current
     FooScreen(
-        items = state.items,
+        state = state,
         onDelete = logics::deleteItem,
         onAdd = {
             logics.addItem(text = "foo:" + System.currentTimeMillis() % 64 + ":text")
         },
         onTransmitter = {
-            TODO()
+            logics.syncItems()
         },
         onReceiver = {
             HttpService.startService<ReceiverService>(context, HttpService.Action.StartServer)

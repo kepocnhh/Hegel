@@ -14,6 +14,8 @@ import kotlinx.coroutines.Dispatchers
 import org.kepocnhh.hegel.entity.Foo
 import org.kepocnhh.hegel.module.app.Injection
 import org.kepocnhh.hegel.provider.Contexts
+import org.kepocnhh.hegel.provider.FinalLoggers
+import org.kepocnhh.hegel.provider.FinalRemotes
 import org.kepocnhh.hegel.provider.Locals
 import org.kepocnhh.hegel.util.compose.LocalOnBackPressedDispatcher
 import org.kepocnhh.hegel.util.compose.toPaddings
@@ -71,7 +73,9 @@ internal class App : Application() {
                 main = Dispatchers.Main,
                 default = Dispatchers.Default,
             ),
+            loggers = FinalLoggers,
             locals = MockLocals(),
+            remotes = FinalRemotes(),
         )
     }
 
