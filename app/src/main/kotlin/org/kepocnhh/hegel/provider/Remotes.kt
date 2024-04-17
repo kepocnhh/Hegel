@@ -1,7 +1,8 @@
 package org.kepocnhh.hegel.provider
 
 import org.kepocnhh.hegel.entity.ItemsSyncResponse
+import org.kepocnhh.hegel.entity.Meta
 
 internal interface Remotes {
-    fun itemsSync(): ItemsSyncResponse
+    fun itemsSync(meta: Meta): ItemsSyncResponse
 }

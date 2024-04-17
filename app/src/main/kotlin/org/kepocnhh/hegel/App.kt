@@ -12,11 +12,15 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalView
 import kotlinx.coroutines.Dispatchers
 import org.kepocnhh.hegel.entity.Foo
+import org.kepocnhh.hegel.entity.Meta
 import org.kepocnhh.hegel.module.app.Injection
 import org.kepocnhh.hegel.provider.Contexts
 import org.kepocnhh.hegel.provider.FinalLoggers
 import org.kepocnhh.hegel.provider.FinalRemotes
+import org.kepocnhh.hegel.provider.JsonSerializer
 import org.kepocnhh.hegel.provider.Locals
+import org.kepocnhh.hegel.provider.Serializer
+import org.kepocnhh.hegel.provider.Storage
 import org.kepocnhh.hegel.util.compose.LocalOnBackPressedDispatcher
 import org.kepocnhh.hegel.util.compose.toPaddings
 import sp.kx.logics.Logics
@@ -52,22 +56,50 @@ internal class App : Application() {
     }
 
     private class MockLocals : Locals {
-        override var foo: List<Foo> = listOf(
-            Foo(
-                id = UUID.randomUUID(),
-                text = "foo:1:text",
-                created = System.currentTimeMillis().milliseconds - 2.hours,
-            ),
-            Foo(
-                id = UUID.randomUUID(),
-                text = "foo:2:text",
+        override var foo: Storage<Foo> = object : Storage<Foo> {
+            override var meta: Meta = Meta(
+                id = Foo.META_ID,
                 created = System.currentTimeMillis().milliseconds - 1.hours,
+                updated = System.currentTimeMillis().milliseconds,
+                hash = "",
             )
-        )
+            override var metas: List<Meta> = emptyList()
+            override var items: List<Foo> = emptyList()
+                set(value) {
+                    val deleted = deleted.toMutableSet()
+                    for (old in field) {
+                        if (value.none { it.id == old.id }) {
+                            deleted += old.id
+                        }
+                    }
+                    this.deleted = deleted.toList()
+                    val metas = mutableListOf<Meta>()
+                    value.forEach { item ->
+                        metas += this.metas.firstOrNull { it.id == item.id }?.copy(
+                            updated = System.currentTimeMillis().milliseconds,
+                            hash = item.hashCode().toString(),
+                        ) ?: Meta(
+                            id = item.id,
+                            created = System.currentTimeMillis().milliseconds,
+                            updated = System.currentTimeMillis().milliseconds,
+                            hash = item.hashCode().toString(),
+                        )
+                    }
+                    this.metas = metas
+                    meta = meta.copy(
+                        updated = System.currentTimeMillis().milliseconds,
+                        hash = metas.joinToString(separator = "") { it.hash }.hashCode().toString()
+                    )
+                    field = value
+                }
+            override var deleted: List<UUID> = emptyList()
+        }
     }
 
     override fun onCreate() {
         super.onCreate()
+        val serializer: Serializer = JsonSerializer()
+        _serializer = serializer
         _injection = Injection(
             contexts = Contexts(
                 main = Dispatchers.Main,
@@ -75,11 +107,13 @@ internal class App : Application() {
             ),
             loggers = FinalLoggers,
             locals = MockLocals(),
-            remotes = FinalRemotes(),
+            remotes = FinalRemotes(serializer = serializer),
         )
     }
 
     companion object {
+        private var _serializer: Serializer? = null
+        val serializer: Serializer get() = checkNotNull(_serializer)
         private var _injection: Injection? = null
 
         private val _logicsProvider = LogicsProvider(

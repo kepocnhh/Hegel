@@ -25,7 +25,7 @@ internal class FooLogics(
     fun requestItems() = launch {
         _state.emit(State(loading = true, items = state.value?.items.orEmpty()))
         val items = withContext(injection.contexts.default) {
-            injection.locals.foo
+            injection.locals.foo.items
         }
         _state.emit(State(loading = false, items = items))
     }
@@ -33,9 +33,9 @@ internal class FooLogics(
     fun deleteItem(id: UUID) = launch {
         _state.emit(State(loading = true, items = state.value?.items.orEmpty()))
         val items = withContext(injection.contexts.default) {
-            injection.locals.foo.toMutableList().also { list ->
+            injection.locals.foo.items.toMutableList().also { list ->
                 list.removeIf { it.id == id }
-                injection.locals.foo = list
+                injection.locals.foo.items = list
             }
         }
         _state.emit(State(loading = false, items = items))
@@ -44,13 +44,13 @@ internal class FooLogics(
     fun addItem(text: String) = launch {
         _state.emit(State(loading = true, items = state.value?.items.orEmpty()))
         val items = withContext(injection.contexts.default) {
-            injection.locals.foo.toMutableList().also { list ->
+            injection.locals.foo.items.toMutableList().also { list ->
                 list += Foo(
                     id = UUID.randomUUID(),
                     created = System.currentTimeMillis().milliseconds,
                     text = text,
                 )
-                injection.locals.foo = list
+                injection.locals.foo.items = list
             }
         }
         _state.emit(State(loading = false, items = items))
@@ -79,7 +79,7 @@ internal class FooLogics(
         _state.emit(State(loading = true, items = state.value?.items.orEmpty()))
         val result = withContext(injection.contexts.default) {
             runCatching {
-                injection.remotes.itemsSync()
+                injection.remotes.itemsSync(injection.locals.foo.meta)
             }
         }
         onResponse(result)

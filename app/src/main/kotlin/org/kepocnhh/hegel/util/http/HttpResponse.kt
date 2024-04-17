@@ -9,6 +9,19 @@ class HttpResponse(
     val headers: Map<String, String>,
     val body: ByteArray?,
 ) {
+    constructor(
+        code: Int,
+        message: String,
+        headers: Map<String, String> = emptyMap(),
+        body: ByteArray? = null,
+    ): this(
+        version = "1.1",
+        code = code,
+        message = message,
+        headers = headers,
+        body = body,
+    )
+
     companion object {
         fun write(response: HttpResponse, stream: OutputStream) {
             val builder = StringBuilder()
