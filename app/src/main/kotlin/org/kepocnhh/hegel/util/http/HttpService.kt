@@ -12,6 +12,9 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.net.Inet4Address
+import java.net.InetAddress
+import java.net.NetworkInterface
 import java.net.ServerSocket
 
 internal abstract class HttpService(
@@ -84,9 +87,9 @@ internal abstract class HttpService(
     protected abstract fun onSocketAccept(request: HttpRequest): HttpResponse
 
     private fun onStarting(serverSocket: ServerSocket) {
+        val address = getInetAddress().hostAddress ?: TODO()
         if (this.serverSocket != null) TODO()
         this.serverSocket = serverSocket
-        val address = serverSocket.inetAddress.hostAddress ?: TODO()
         _state.value = State.Started("$address:${serverSocket.localPort}")
         while (_state.value is State.Started) {
             try {
@@ -151,6 +154,17 @@ internal abstract class HttpService(
             val intent = Intent(context, T::class.java)
             intent.action = action.name
             context.startService(intent)
+        }
+
+        private fun getInetAddress(): InetAddress {
+            val interfaces = NetworkInterface.getNetworkInterfaces()
+            if (!interfaces.hasMoreElements()) error("No interfaces!")
+            return interfaces
+                .asSequence()
+                .flatMap { it.inetAddresses.asSequence() }
+                .filterIsInstance<Inet4Address>()
+                .firstOrNull { !it.isLoopbackAddress }
+                ?: error("No addresses!")
         }
     }
 }
