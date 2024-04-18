@@ -2,6 +2,7 @@ package org.kepocnhh.hegel.provider
 
 import org.json.JSONArray
 import org.json.JSONObject
+import org.kepocnhh.hegel.entity.ItemsSyncMergeRequest
 import org.kepocnhh.hegel.entity.ItemsSyncResponse
 import org.kepocnhh.hegel.entity.Meta
 import java.util.UUID
@@ -108,6 +109,24 @@ internal class JsonSerializer : Serializer {
             return ItemsSyncResponse.NeedUpdate(
                 sessionId = UUID.fromString(obj.getString("sessionId")),
                 metas = meta.list.decode(obj.getJSONArray("metas").toString().toByteArray()),
+                deleted = uuid.list.decode(obj.getJSONArray("deleted").toString().toByteArray()),
+            )
+        }
+    }
+
+    override val syncMerge: Transformer<ItemsSyncMergeRequest> = object : Transformer<ItemsSyncMergeRequest> {
+        override fun encode(value: ItemsSyncMergeRequest): ByteArray {
+            return JSONObject()
+                .put("download", JSONArray(String(uuid.list.encode(value.download))))
+                .put("deleted", JSONArray(String(uuid.list.encode(value.deleted))))
+                .toString()
+                .toByteArray()
+        }
+
+        override fun decode(bytes: ByteArray): ItemsSyncMergeRequest {
+            val obj = JSONObject(String(bytes))
+            return ItemsSyncMergeRequest(
+                download = uuid.list.decode(obj.getJSONArray("download").toString().toByteArray()),
                 deleted = uuid.list.decode(obj.getJSONArray("deleted").toString().toByteArray()),
             )
         }

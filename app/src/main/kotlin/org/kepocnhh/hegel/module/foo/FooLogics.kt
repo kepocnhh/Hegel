@@ -4,6 +4,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import org.kepocnhh.hegel.entity.Foo
+import org.kepocnhh.hegel.entity.ItemsSyncMergeRequest
 import org.kepocnhh.hegel.entity.ItemsSyncResponse
 import org.kepocnhh.hegel.module.app.Injection
 import sp.kx.logics.Logics
@@ -56,6 +57,24 @@ internal class FooLogics(
         _state.emit(State(loading = false, items = items))
     }
 
+    private suspend fun onNeedUpdate(response: ItemsSyncResponse.NeedUpdate) {
+        val download = withContext(injection.contexts.default) {
+            response.metas.filter { meta ->
+                injection.locals.foo.metas.none { it.id == meta.id }
+            }.map { it.id }
+        }
+        val result = withContext(injection.contexts.default) {
+            runCatching {
+                val request = ItemsSyncMergeRequest(
+                    download = download,
+                    deleted = injection.locals.foo.deleted,
+                )
+                injection.remotes.itemsSyncMerge(request)
+            }
+        }
+        TODO("FooLogics:onNeedUpdate:$result")
+    }
+
     private suspend fun onResponse(response: ItemsSyncResponse) {
         when (response) {
             ItemsSyncResponse.NotModified -> {
@@ -63,7 +82,7 @@ internal class FooLogics(
                 return
             }
             is ItemsSyncResponse.NeedUpdate -> {
-                TODO("FooLogics:onResponse:$response")
+                onNeedUpdate(response)
             }
         }
     }
