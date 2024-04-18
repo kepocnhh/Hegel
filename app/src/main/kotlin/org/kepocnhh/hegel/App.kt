@@ -57,13 +57,12 @@ internal class App : Application() {
 
     private class MockLocals : Locals {
         override var foo: Storage<Foo> = object : Storage<Foo> {
+            override var metas: List<Meta> = emptyList()
             override var meta: Meta = Meta(
                 id = Foo.META_ID,
-                created = System.currentTimeMillis().milliseconds - 1.hours,
                 updated = System.currentTimeMillis().milliseconds,
-                hash = "",
+                hash = metas.joinToString(separator = "") { it.hash }.hashCode().toString(), // todo
             )
-            override var metas: List<Meta> = emptyList()
             override var items: List<Foo> = emptyList()
                 set(value) {
                     val deleted = deleted.toMutableSet()
@@ -73,22 +72,17 @@ internal class App : Application() {
                         }
                     }
                     this.deleted = deleted.toList()
-                    val metas = mutableListOf<Meta>()
-                    value.forEach { item ->
-                        metas += this.metas.firstOrNull { it.id == item.id }?.copy(
-                            updated = System.currentTimeMillis().milliseconds,
-                            hash = item.hashCode().toString(),
-                        ) ?: Meta(
+                    val metas = value.map { item ->
+                        Meta(
                             id = item.id,
-                            created = System.currentTimeMillis().milliseconds,
                             updated = System.currentTimeMillis().milliseconds,
-                            hash = item.hashCode().toString(),
+                            hash = item.hashCode().toString(), // todo
                         )
                     }
                     this.metas = metas
                     meta = meta.copy(
                         updated = System.currentTimeMillis().milliseconds,
-                        hash = metas.joinToString(separator = "") { it.hash }.hashCode().toString()
+                        hash = metas.joinToString(separator = "") { it.hash }.hashCode().toString(), // todo
                     )
                     field = value
                 }
