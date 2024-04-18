@@ -31,6 +31,7 @@ private fun FooScreen(
     state: FooLogics.State,
     onDelete: (UUID) -> Unit,
     onAdd: () -> Unit,
+    onUpdate: (UUID) -> Unit,
     onTransmitter: () -> Unit,
     onReceiver: () -> Unit,
 ) {
@@ -46,14 +47,29 @@ private fun FooScreen(
                 item(
                     key = item.id,
                 ) {
-                    BasicText(
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable(enabled = !state.loading) {
-                                onDelete(item.id)
+                            .clickable {
+                                onUpdate(item.id)
                             },
-                        text = "$index) ${item.text}\nid: ${item.id}\ndate: ${Date(item.created.inWholeMilliseconds)}",
-                    )
+                    ) {
+                        BasicText(
+                            modifier = Modifier
+                                .weight(1f),
+                            text = "$index) ${item.text}\nid: ${item.id}\ndate: ${Date(item.created.inWholeMilliseconds)}",
+                        )
+                        BasicText(
+                            modifier = Modifier
+                                .background(Color.Black)
+                                .padding(16.dp)
+                                .clickable(enabled = !state.loading) {
+                                    onDelete(item.id)
+                                },
+                            text = "x",
+                            style = TextStyle(color = Color.White),
+                        )
+                    }
                 }
             }
         }
@@ -125,7 +141,10 @@ internal fun FooScreen() {
         state = state,
         onDelete = logics::deleteItem,
         onAdd = {
-            logics.addItem(text = "foo:" + System.currentTimeMillis() % 64 + ":text")
+            logics.addItem(text = "foo:" + System.currentTimeMillis() % 256 + ":text")
+        },
+        onUpdate = { id: UUID ->
+            logics.updateItem(id = id, text = "foo:" + System.currentTimeMillis() % 256 + ":updated")
         },
         onTransmitter = {
             logics.syncItems()

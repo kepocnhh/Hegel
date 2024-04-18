@@ -30,6 +30,7 @@ import sp.kx.logics.LogicsProvider
 import sp.kx.logics.contains
 import sp.kx.logics.get
 import sp.kx.logics.remove
+import java.util.Date
 import java.util.UUID
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.milliseconds
@@ -74,12 +75,22 @@ internal class App : Application() {
                     }
                     this.deleted = deleted.toList()
                     val metas = value.map { item ->
-                        Meta(
-                            id = item.id,
-                            updated = System.currentTimeMillis().milliseconds,
-                            hash = item.hashCode().toString(), // todo
-                        )
+                        val hash = item.hashCode().toString() // todo
+                        val oldMeta = metas.firstOrNull { it.id == item.id }
+                        println("[App]: old: \"${oldMeta?.hash}\" new: \"$hash\"") // todo
+                        if (oldMeta != null && oldMeta.hash == hash) {
+                            oldMeta
+                        } else {
+                            val updated = System.currentTimeMillis().milliseconds
+                            println("[App]: updated: ${Date(updated.inWholeMilliseconds)}") // todo
+                            Meta(
+                                id = item.id,
+                                updated = updated,
+                                hash = hash,
+                            )
+                        }
                     }
+//                    val equals = metas.sortedBy { it.id }.map { it.hash } == this.metas.sortedBy { it.id }.map { it.hash } // todo
                     this.metas = metas
                     meta = meta.copy(
                         updated = System.currentTimeMillis().milliseconds,

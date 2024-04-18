@@ -19,6 +19,7 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
 
 internal class ReceiverService : HttpService(_state) {
+    private val logger = App.injection.loggers.create("[Receiver]")
     private val routing = mapOf(
         "/v1/items/sync" to mapOf(
             "POST" to ::onPostItemsSync,
@@ -43,11 +44,15 @@ internal class ReceiverService : HttpService(_state) {
                 message = "TODO", // todo
             )
         }
+        logger.debug("receive: " + request.items.map { it.id })
         val response = ItemsSyncMergeResponse(
             items = App.injection.locals.foo.items.filter { request.download.contains(it.id) }
         )
-        App.injection.locals.foo.items = App.injection.locals.foo.items
-            .filter { !request.deleted.contains(it.id) } + request.items
+        val items = App.injection.locals.foo.items.toMutableList()
+        items.removeIf { request.deleted.contains(it.id) }
+        items.removeIf { item -> request.items.any { it.id == item.id } }
+        items.addAll(request.items)
+        App.injection.locals.foo.items = items
         App.injection.locals.session = null
         val body = App.injection.serializer.mergeResponse.encode(response)
         return HttpResponse(
@@ -62,6 +67,7 @@ internal class ReceiverService : HttpService(_state) {
     }
 
     private fun onPostItemsSyncMerge(request: HttpRequest): HttpResponse {
+        logger.debug("on post items sync merge...")
         val bytes = request.body ?: TODO()
         return onSyncMerge(App.injection.serializer.syncMerge.decode(bytes))
     }
@@ -107,6 +113,7 @@ internal class ReceiverService : HttpService(_state) {
     }
 
     private fun onPostItemsSync(request: HttpRequest): HttpResponse {
+        logger.debug("on post items sync...")
         val bytes = request.body ?: TODO()
         val meta = App.injection.serializer.meta.decode(bytes)
         return when (meta.id) {

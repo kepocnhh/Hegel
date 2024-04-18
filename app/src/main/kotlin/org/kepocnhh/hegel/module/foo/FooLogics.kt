@@ -10,6 +10,7 @@ import org.kepocnhh.hegel.entity.ItemsSyncResponse
 import org.kepocnhh.hegel.entity.Meta
 import org.kepocnhh.hegel.module.app.Injection
 import sp.kx.logics.Logics
+import java.util.Date
 import java.util.UUID
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -59,9 +60,27 @@ internal class FooLogics(
         _state.emit(State(loading = false, items = items))
     }
 
+    fun updateItem(id: UUID, text: String) = launch {
+        _state.emit(State(loading = true, items = state.value?.items.orEmpty()))
+        val items = withContext(injection.contexts.default) {
+            injection.locals.foo.items.toMutableList().also { list ->
+                val oldItem = list.firstOrNull { it.id == id } ?: TODO()
+                list.removeIf { it.id == id }
+                list += oldItem.copy(text = text)
+                injection.locals.foo.items = list
+            }
+        }
+        _state.emit(State(loading = false, items = items))
+    }
+
     private suspend fun onSyncMerge(response: ItemsSyncMergeResponse) {
+        logger.debug("sync merge...")
+        logger.debug("items: " + response.items.map { it.id })
         withContext(injection.contexts.default) {
-            injection.locals.foo.items += response.items
+            val items = injection.locals.foo.items.toMutableList()
+            items.removeIf { item -> response.items.any { it.id == item.id } }
+            items.addAll(response.items)
+            injection.locals.foo.items = items
         }
         val items = withContext(injection.contexts.default) {
             injection.locals.foo.items
@@ -71,7 +90,7 @@ internal class FooLogics(
 
     private suspend fun onSyncMerge(result: Result<ItemsSyncMergeResponse>) {
         if (result.isFailure) {
-            logger.warning("sync items: " + result.exceptionOrNull())
+            logger.warning("sync merge: " + result.exceptionOrNull())
             _state.emit(State(loading = false, items = state.value?.items.orEmpty()))
             return
         }
@@ -79,6 +98,9 @@ internal class FooLogics(
     }
 
     private suspend fun onNeedUpdate(response: ItemsSyncResponse.NeedUpdate) {
+        logger.debug("need update...")
+        logger.debug("metas: " + response.metas.map { it.id })
+        logger.debug("deleted: " + response.deleted)
         injection.locals.foo.items = injection.locals.foo.items.filter { !response.deleted.contains(it.id) }
         val download = mutableListOf<UUID>()
         val items = mutableListOf<Foo>()
@@ -98,6 +120,11 @@ internal class FooLogics(
                     if (deleted) continue
                     download.add(remote.id)
                 } else if (remote.hash != local.hash) {
+                    val message = """
+                        remote: ${Date(remote.updated.inWholeMilliseconds)}
+                        local: ${Date(local.updated.inWholeMilliseconds)}
+                    """.trimIndent()
+                    logger.debug(message)
                     if (remote.updated > local.updated) {
                         download.add(remote.id)
                     } else {
@@ -114,6 +141,7 @@ internal class FooLogics(
                     items = items,
                     deleted = injection.locals.foo.deleted,
                 )
+                logger.debug("upload: " + request.items.map { it.id })
                 injection.remotes.itemsSyncMerge(request)
             }
         }
