@@ -62,6 +62,9 @@ internal class FooLogics(
                 _state.emit(State(loading = false, items = state.value?.items.orEmpty()))
                 return
             }
+            is ItemsSyncResponse.NeedUpdate -> {
+                TODO("FooLogics:onResponse:$response")
+            }
         }
     }
 

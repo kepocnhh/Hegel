@@ -13,6 +13,7 @@ import androidx.compose.ui.platform.LocalView
 import kotlinx.coroutines.Dispatchers
 import org.kepocnhh.hegel.entity.Foo
 import org.kepocnhh.hegel.entity.Meta
+import org.kepocnhh.hegel.entity.Session
 import org.kepocnhh.hegel.module.app.Injection
 import org.kepocnhh.hegel.provider.Contexts
 import org.kepocnhh.hegel.provider.FinalLoggers
@@ -88,12 +89,13 @@ internal class App : Application() {
                 }
             override var deleted: List<UUID> = emptyList()
         }
+
+        override var session: Session? = null
     }
 
     override fun onCreate() {
         super.onCreate()
         val serializer: Serializer = JsonSerializer()
-        _serializer = serializer
         _injection = Injection(
             contexts = Contexts(
                 main = Dispatchers.Main,
@@ -102,13 +104,13 @@ internal class App : Application() {
             loggers = FinalLoggers,
             locals = MockLocals(),
             remotes = FinalRemotes(serializer = serializer),
+            serializer = serializer,
         )
     }
 
     companion object {
-        private var _serializer: Serializer? = null
-        val serializer: Serializer get() = checkNotNull(_serializer)
         private var _injection: Injection? = null
+        val injection: Injection get() = checkNotNull(_injection)
 
         private val _logicsProvider = LogicsProvider(
             factory = object : LogicsFactory {

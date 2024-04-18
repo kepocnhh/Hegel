@@ -98,9 +98,9 @@ internal abstract class HttpService(
                     val response = onSocketAccept(request)
                     HttpResponse.write(response, socket.getOutputStream())
                 }
-            } catch (_: Throwable) {
+            } catch (e: Throwable) {
                 if (_state.value is State.Stopping) break
-                TODO()
+                TODO("HttpService:onStarting:$e")
             }
         }
         _state.value = State.Stopped
