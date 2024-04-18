@@ -86,12 +86,16 @@ internal class FooLogics(
             for (local in injection.locals.foo.metas) {
                 val exists = response.metas.any { it.id == local.id }
                 if (exists) continue
+                val deleted = response.deleted.contains(local.id)
+                if (deleted) continue
                 val item = injection.locals.foo.items.firstOrNull { it.id == local.id } ?: TODO()
                 items.add(item)
             }
             for (remote in response.metas) {
                 val local = injection.locals.foo.metas.firstOrNull { it.id == remote.id }
                 if (local == null) {
+                    val deleted = injection.locals.foo.deleted.contains(remote.id)
+                    if (deleted) continue
                     download.add(remote.id)
                 } else if (remote.hash != local.hash) {
                     if (remote.updated > local.updated) {
