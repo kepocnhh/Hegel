@@ -5,7 +5,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import org.kepocnhh.hegel.entity.Foo
 import org.kepocnhh.hegel.entity.ItemsSyncMergeRequest
+import org.kepocnhh.hegel.entity.ItemsSyncMergeResponse
 import org.kepocnhh.hegel.entity.ItemsSyncResponse
+import org.kepocnhh.hegel.entity.Meta
 import org.kepocnhh.hegel.module.app.Injection
 import sp.kx.logics.Logics
 import java.util.UUID
@@ -57,22 +59,61 @@ internal class FooLogics(
         _state.emit(State(loading = false, items = items))
     }
 
+    private suspend fun onSyncMerge(response: ItemsSyncMergeResponse) {
+        withContext(injection.contexts.default) {
+            injection.locals.foo.items += response.items
+        }
+        val items = withContext(injection.contexts.default) {
+            injection.locals.foo.items
+        }
+        _state.emit(State(loading = false, items = items))
+    }
+
+    private suspend fun onSyncMerge(result: Result<ItemsSyncMergeResponse>) {
+        if (result.isFailure) {
+            logger.warning("sync items: " + result.exceptionOrNull())
+            _state.emit(State(loading = false, items = state.value?.items.orEmpty()))
+            return
+        }
+        onSyncMerge(result.getOrThrow())
+    }
+
     private suspend fun onNeedUpdate(response: ItemsSyncResponse.NeedUpdate) {
-        val download = withContext(injection.contexts.default) {
-            response.metas.filter { meta ->
-                injection.locals.foo.metas.none { it.id == meta.id }
-            }.map { it.id }
+        injection.locals.foo.items = injection.locals.foo.items.filter { !response.deleted.contains(it.id) }
+        val download = mutableListOf<UUID>()
+        val items = mutableListOf<Foo>()
+        withContext(injection.contexts.default) {
+            for (local in injection.locals.foo.metas) {
+                val exists = response.metas.any { it.id == local.id }
+                if (exists) continue
+                val item = injection.locals.foo.items.firstOrNull { it.id == local.id } ?: TODO()
+                items.add(item)
+            }
+            for (remote in response.metas) {
+                val local = injection.locals.foo.metas.firstOrNull { it.id == remote.id }
+                if (local == null) {
+                    download.add(remote.id)
+                } else if (remote.hash != local.hash) {
+                    if (remote.updated > local.updated) {
+                        download.add(remote.id)
+                    } else {
+                        val item = injection.locals.foo.items.firstOrNull { it.id == local.id } ?: TODO()
+                        items.add(item)
+                    }
+                }
+            }
         }
         val result = withContext(injection.contexts.default) {
             runCatching {
                 val request = ItemsSyncMergeRequest(
                     download = download,
+                    items = items,
                     deleted = injection.locals.foo.deleted,
                 )
                 injection.remotes.itemsSyncMerge(request)
             }
         }
-        TODO("FooLogics:onNeedUpdate:$result")
+        onSyncMerge(result)
     }
 
     private suspend fun onResponse(response: ItemsSyncResponse) {

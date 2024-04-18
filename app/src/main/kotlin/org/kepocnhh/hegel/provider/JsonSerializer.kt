@@ -2,7 +2,9 @@ package org.kepocnhh.hegel.provider
 
 import org.json.JSONArray
 import org.json.JSONObject
+import org.kepocnhh.hegel.entity.Foo
 import org.kepocnhh.hegel.entity.ItemsSyncMergeRequest
+import org.kepocnhh.hegel.entity.ItemsSyncMergeResponse
 import org.kepocnhh.hegel.entity.ItemsSyncResponse
 import org.kepocnhh.hegel.entity.Meta
 import java.util.UUID
@@ -114,10 +116,59 @@ internal class JsonSerializer : Serializer {
         }
     }
 
+    private val _foo: Transformer<Foo> = object : Transformer<Foo> {
+        override fun encode(value: Foo): ByteArray {
+            return JSONObject()
+                .put("id", value.id.toString())
+                .put("created", value.created.inWholeMilliseconds)
+                .put("text", value.text)
+                .toString()
+                .toByteArray()
+        }
+
+        override fun decode(bytes: ByteArray): Foo {
+            val obj = JSONObject(String(bytes))
+            return Foo(
+                id = UUID.fromString(obj.getString("id")),
+                created = obj.getLong("created").milliseconds,
+                text = obj.getString("text"),
+            )
+        }
+    }
+
+    override val foo: ListTransformer<Foo> = object : ListTransformer<Foo> {
+        override fun encode(value: Foo): ByteArray {
+            return _foo.encode(value)
+        }
+
+        override val list: Transformer<List<Foo>> = object : Transformer<List<Foo>> {
+            override fun encode(value: List<Foo>): ByteArray {
+                val array = JSONArray()
+                for (it in value) {
+                    array.put(JSONObject(String(_foo.encode(it)))) // todo
+                }
+                return array.toString().toByteArray()
+            }
+
+            override fun decode(bytes: ByteArray): List<Foo> {
+                val array = JSONArray(String(bytes))
+                return (0 until array.length()).map { index ->
+                    val obj = array.getJSONObject(index)
+                    _foo.decode(obj.toString().toByteArray())
+                }
+            }
+        }
+
+        override fun decode(bytes: ByteArray): Foo {
+            return _foo.decode(bytes)
+        }
+    }
+
     override val syncMerge: Transformer<ItemsSyncMergeRequest> = object : Transformer<ItemsSyncMergeRequest> {
         override fun encode(value: ItemsSyncMergeRequest): ByteArray {
             return JSONObject()
                 .put("download", JSONArray(String(uuid.list.encode(value.download))))
+                .put("items", JSONArray(String(foo.list.encode(value.items))))
                 .put("deleted", JSONArray(String(uuid.list.encode(value.deleted))))
                 .toString()
                 .toByteArray()
@@ -127,7 +178,24 @@ internal class JsonSerializer : Serializer {
             val obj = JSONObject(String(bytes))
             return ItemsSyncMergeRequest(
                 download = uuid.list.decode(obj.getJSONArray("download").toString().toByteArray()),
+                items = foo.list.decode(obj.getJSONArray("items").toString().toByteArray()),
                 deleted = uuid.list.decode(obj.getJSONArray("deleted").toString().toByteArray()),
+            )
+        }
+    }
+
+    override val mergeResponse: Transformer<ItemsSyncMergeResponse> = object : Transformer<ItemsSyncMergeResponse> {
+        override fun encode(value: ItemsSyncMergeResponse): ByteArray {
+            return JSONObject()
+                .put("items", JSONArray(String(foo.list.encode(value.items))))
+                .toString()
+                .toByteArray()
+        }
+
+        override fun decode(bytes: ByteArray): ItemsSyncMergeResponse {
+            val obj = JSONObject(String(bytes))
+            return ItemsSyncMergeResponse(
+                items = foo.list.decode(obj.getJSONArray("items").toString().toByteArray()),
             )
         }
     }

@@ -4,6 +4,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import org.kepocnhh.hegel.App
 import org.kepocnhh.hegel.entity.Foo
+import org.kepocnhh.hegel.entity.ItemsSyncMergeRequest
+import org.kepocnhh.hegel.entity.ItemsSyncMergeResponse
 import org.kepocnhh.hegel.entity.ItemsSyncResponse
 import org.kepocnhh.hegel.entity.Meta
 import org.kepocnhh.hegel.entity.Session
@@ -21,7 +23,48 @@ internal class ReceiverService : HttpService(_state) {
         "/v1/items/sync" to mapOf(
             "POST" to ::onPostItemsSync,
         ),
+        "/v1/items/sync/merge" to mapOf(
+            "POST" to ::onPostItemsSyncMerge,
+        ),
     )
+
+    private fun onSyncMerge(request: ItemsSyncMergeRequest): HttpResponse {
+        val oldSession = App.injection.locals.session
+        if (oldSession == null) {
+            return HttpResponse(
+                code = 500,
+                message = "TODO", // todo
+            )
+        }
+        if (oldSession.expires < System.currentTimeMillis().milliseconds) {
+            App.injection.locals.session = null
+            return HttpResponse(
+                code = 500,
+                message = "TODO", // todo
+            )
+        }
+        val response = ItemsSyncMergeResponse(
+            items = App.injection.locals.foo.items.filter { request.download.contains(it.id) }
+        )
+        App.injection.locals.foo.items = App.injection.locals.foo.items
+            .filter { !request.deleted.contains(it.id) } + request.items
+        App.injection.locals.session = null
+        val body = App.injection.serializer.mergeResponse.encode(response)
+        return HttpResponse(
+            code = 200,
+            message = "OK",
+            headers = mapOf(
+                "Content-Type" to "application/json",
+                "Content-Length" to body.size.toString(),
+            ),
+            body = body,
+        )
+    }
+
+    private fun onPostItemsSyncMerge(request: HttpRequest): HttpResponse {
+        val bytes = request.body ?: TODO()
+        return onSyncMerge(App.injection.serializer.syncMerge.decode(bytes))
+    }
 
     private fun onMetaSync(meta: Meta, storage: Storage<*>): HttpResponse {
         val oldSession = App.injection.locals.session
@@ -35,7 +78,7 @@ internal class ReceiverService : HttpService(_state) {
                 App.injection.locals.session = null
             }
         }
-        if (storage.meta == meta) {
+        if (storage.meta.hash == meta.hash) {
             return HttpResponse(
                 code = 304,
                 message = "Not Modified",

@@ -4,6 +4,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.kepocnhh.hegel.entity.ItemsSyncMergeRequest
+import org.kepocnhh.hegel.entity.ItemsSyncMergeResponse
 import org.kepocnhh.hegel.entity.ItemsSyncResponse
 import org.kepocnhh.hegel.entity.Meta
 import java.util.concurrent.TimeUnit
@@ -38,7 +39,7 @@ internal class FinalRemotes(
         }
     }
 
-    override fun itemsSyncMerge(request: ItemsSyncMergeRequest) {
+    override fun itemsSyncMerge(request: ItemsSyncMergeRequest): ItemsSyncMergeResponse {
         val request = Request.Builder()
             .url("$URL/v1/items/sync/merge") // todo
             .header("Content-Type", "application/json")
@@ -46,6 +47,10 @@ internal class FinalRemotes(
             .build()
         return client.newCall(request).execute().use { response ->
             when (response.code) {
+                200 -> {
+                    val bytes = response.body?.bytes() ?: TODO()
+                    serializer.mergeResponse.decode(bytes)
+                }
                 else -> TODO("FinalRemotes:itemsSyncMerge:Unknown code ${response.code}!")
             }
         }
