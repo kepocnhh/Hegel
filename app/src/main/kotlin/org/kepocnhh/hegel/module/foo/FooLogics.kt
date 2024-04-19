@@ -6,6 +6,7 @@ import kotlinx.coroutines.withContext
 import org.kepocnhh.hegel.entity.Foo
 import org.kepocnhh.hegel.entity.ItemsSyncMergeRequest
 import org.kepocnhh.hegel.entity.ItemsSyncMergeResponse
+import org.kepocnhh.hegel.entity.ItemsSyncRequest
 import org.kepocnhh.hegel.entity.ItemsSyncResponse
 import org.kepocnhh.hegel.entity.Meta
 import org.kepocnhh.hegel.module.app.Injection
@@ -166,7 +167,11 @@ internal class FooLogics(
         _state.emit(State(loading = true, items = state.value?.items.orEmpty()))
         val result = withContext(injection.contexts.default) {
             runCatching {
-                injection.remotes.itemsSync(injection.locals.foo.meta)
+                val request = ItemsSyncRequest(
+                    id = Foo.META_ID,
+                    hash = injection.locals.foo.meta.hash,
+                )
+                injection.remotes.itemsSync(request)
             }
         }
         onResponse(result)

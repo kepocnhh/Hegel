@@ -54,7 +54,7 @@ internal class ReceiverService : HttpService(_state) {
         items.addAll(request.items)
         App.injection.locals.foo.items = items
         App.injection.locals.session = null
-        val body = App.injection.serializer.mergeResponse.encode(response)
+        val body = App.injection.serializer.remote.mergeResponse.encode(response)
         return HttpResponse(
             code = 200,
             message = "OK",
@@ -69,10 +69,10 @@ internal class ReceiverService : HttpService(_state) {
     private fun onPostItemsSyncMerge(request: HttpRequest): HttpResponse {
         logger.debug("on post items sync merge...")
         val bytes = request.body ?: TODO()
-        return onSyncMerge(App.injection.serializer.syncMerge.decode(bytes))
+        return onSyncMerge(App.injection.serializer.remote.syncMerge.decode(bytes))
     }
 
-    private fun onMetaSync(meta: Meta, storage: Storage<*>): HttpResponse {
+    private fun onMetaSync(hash: String, storage: Storage<*>): HttpResponse {
         val oldSession = App.injection.locals.session
         if (oldSession != null) {
             if (oldSession.expires > System.currentTimeMillis().milliseconds) {
@@ -84,7 +84,7 @@ internal class ReceiverService : HttpService(_state) {
                 App.injection.locals.session = null
             }
         }
-        if (storage.meta.hash == meta.hash) {
+        if (storage.meta.hash == hash) {
             return HttpResponse(
                 code = 304,
                 message = "Not Modified",
@@ -100,7 +100,7 @@ internal class ReceiverService : HttpService(_state) {
             metas = storage.metas,
             deleted = storage.deleted,
         )
-        val body = App.injection.serializer.needUpdate.encode(response)
+        val body = App.injection.serializer.remote.needUpdate.encode(response)
         return HttpResponse(
             code = 200,
             message = "OK",
@@ -115,9 +115,9 @@ internal class ReceiverService : HttpService(_state) {
     private fun onPostItemsSync(request: HttpRequest): HttpResponse {
         logger.debug("on post items sync...")
         val bytes = request.body ?: TODO()
-        val meta = App.injection.serializer.meta.decode(bytes)
-        return when (meta.id) {
-            Foo.META_ID -> onMetaSync(meta, App.injection.locals.foo)
+        val syncRequest = App.injection.serializer.remote.syncRequest.decode(bytes)
+        return when (syncRequest.id) {
+            Foo.META_ID -> onMetaSync(syncRequest.hash, App.injection.locals.foo)
             else -> TODO()
         }
     }
