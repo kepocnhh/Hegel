@@ -73,11 +73,11 @@ internal class FooLogics(
         _state.emit(State(loading = false, items = items))
     }
 
-    private suspend fun onSyncMerge(response: ItemsSyncMergeResponse) {
+    private suspend fun onSyncMerge(response: ItemsSyncMergeResponse, deleted: List<UUID>) {
         logger.debug("sync merge...")
-        logger.debug("items: " + response.items.map { it.id })
         withContext(injection.contexts.default) {
             val items = injection.locals.foo.items.toMutableList()
+            items.removeIf { item -> deleted.contains(item.id) }
             items.removeIf { item -> response.items.any { it.id == item.id } }
             items.addAll(response.items)
             injection.locals.foo.items = items
@@ -88,20 +88,17 @@ internal class FooLogics(
         _state.emit(State(loading = false, items = items))
     }
 
-    private suspend fun onSyncMerge(result: Result<ItemsSyncMergeResponse>) {
+    private suspend fun onSyncMerge(result: Result<ItemsSyncMergeResponse>, deleted: List<UUID>) {
         if (result.isFailure) {
             logger.warning("sync merge: " + result.exceptionOrNull())
             _state.emit(State(loading = false, items = state.value?.items.orEmpty()))
             return
         }
-        onSyncMerge(result.getOrThrow())
+        onSyncMerge(result.getOrThrow(), deleted = deleted)
     }
 
     private suspend fun onNeedUpdate(response: ItemsSyncResponse.NeedUpdate) {
         logger.debug("need update...")
-        logger.debug("metas: " + response.metas.map { it.id })
-        logger.debug("deleted: " + response.deleted)
-        injection.locals.foo.items = injection.locals.foo.items.filter { !response.deleted.contains(it.id) }
         val download = mutableListOf<UUID>()
         val items = mutableListOf<Foo>()
         withContext(injection.contexts.default) {
@@ -120,11 +117,6 @@ internal class FooLogics(
                     if (deleted) continue
                     download.add(remote.id)
                 } else if (remote.hash != local.hash) {
-                    val message = """
-                        remote: ${Date(remote.updated.inWholeMilliseconds)}
-                        local: ${Date(local.updated.inWholeMilliseconds)}
-                    """.trimIndent()
-                    logger.debug(message)
                     if (remote.updated > local.updated) {
                         download.add(remote.id)
                     } else {
@@ -145,7 +137,7 @@ internal class FooLogics(
                 injection.remotes.itemsSyncMerge(request)
             }
         }
-        onSyncMerge(result)
+        onSyncMerge(result, deleted = response.deleted)
     }
 
     private suspend fun onResponse(response: ItemsSyncResponse) {
