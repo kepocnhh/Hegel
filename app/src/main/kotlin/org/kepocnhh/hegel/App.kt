@@ -76,19 +76,13 @@ internal class App : Application() {
                     this.deleted = deleted.toList()
                     val metas = value.map { item ->
                         val hash = item.hashCode().toString() // todo
-                        val oldMeta = metas.firstOrNull { it.id == item.id }
-                        println("[App]: old: \"${oldMeta?.hash}\" new: \"$hash\"") // todo
-                        if (oldMeta != null && oldMeta.hash == hash) {
-                            oldMeta
-                        } else {
-                            val updated = System.currentTimeMillis().milliseconds
-                            println("[App]: updated: ${Date(updated.inWholeMilliseconds)}") // todo
-                            Meta(
+                        metas.firstOrNull { it.id == item.id }
+                            ?.takeIf { it.hash == hash }
+                            ?: Meta(
                                 id = item.id,
-                                updated = updated,
+                                updated = System.currentTimeMillis().milliseconds,
                                 hash = hash,
                             )
-                        }
                     }
 //                    val equals = metas.sortedBy { it.id }.map { it.hash } == this.metas.sortedBy { it.id }.map { it.hash } // todo
                     this.metas = metas
