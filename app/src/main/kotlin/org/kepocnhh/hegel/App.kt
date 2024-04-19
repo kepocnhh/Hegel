@@ -59,12 +59,9 @@ internal class App : Application() {
 
     private class MockLocals : Locals {
         override var foo: Storage<Foo> = object : Storage<Foo> {
+            override val id: UUID = Foo.META_ID
             override var metas: List<Meta> = emptyList()
-            override var meta: Meta = Meta(
-                id = Foo.META_ID,
-                updated = System.currentTimeMillis().milliseconds,
-                hash = metas.joinToString(separator = "") { it.hash }.hashCode().toString(), // todo
-            )
+            override var hash: String = metas.joinToString(separator = "") { it.hash }.hashCode().toString() // todo
             override var items: List<Foo> = emptyList()
                 set(value) {
                     val deleted = deleted.toMutableSet()
@@ -86,10 +83,7 @@ internal class App : Application() {
                     }
 //                    val equals = metas.sortedBy { it.id }.map { it.hash } == this.metas.sortedBy { it.id }.map { it.hash } // todo
                     this.metas = metas
-                    meta = meta.copy(
-                        updated = System.currentTimeMillis().milliseconds,
-                        hash = metas.joinToString(separator = "") { it.hash }.hashCode().toString(), // todo
-                    )
+                    hash = metas.joinToString(separator = "") { it.hash }.hashCode().toString() // todo
                     field = value
                 }
             override var deleted: List<UUID> = emptyList()

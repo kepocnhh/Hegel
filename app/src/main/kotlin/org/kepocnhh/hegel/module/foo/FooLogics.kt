@@ -169,7 +169,7 @@ internal class FooLogics(
             runCatching {
                 val request = ItemsSyncRequest(
                     id = Foo.META_ID,
-                    hash = injection.locals.foo.meta.hash,
+                    hash = injection.locals.foo.hash,
                 )
                 injection.remotes.itemsSync(request)
             }

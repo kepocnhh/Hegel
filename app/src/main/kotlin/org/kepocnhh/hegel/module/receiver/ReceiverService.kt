@@ -84,7 +84,7 @@ internal class ReceiverService : HttpService(_state) {
                 App.injection.locals.session = null
             }
         }
-        if (storage.meta.hash == hash) {
+        if (storage.hash == hash) {
             return HttpResponse(
                 code = 304,
                 message = "Not Modified",
