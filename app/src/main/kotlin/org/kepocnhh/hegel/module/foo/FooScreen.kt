@@ -43,28 +43,28 @@ private fun FooScreen(
         LazyColumn(
             contentPadding = App.Theme.insets,
         ) {
-            state.items.forEachIndexed { index, item ->
+            state.items.forEachIndexed { index, described ->
                 item(
-                    key = item.id,
+                    key = described.id,
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable {
-                                onUpdate(item.id)
+                                onUpdate(described.id)
                             },
                     ) {
                         BasicText(
                             modifier = Modifier
                                 .weight(1f),
-                            text = "$index) ${item.text}\nid: ${item.id}\ndate: ${Date(item.created.inWholeMilliseconds)}",
+                            text = "$index) ${described.item.text}\nid: ${described.id}\ndate: ${Date(described.info.created.inWholeMilliseconds)}",
                         )
                         BasicText(
                             modifier = Modifier
                                 .background(Color.Black)
                                 .padding(16.dp)
                                 .clickable(enabled = !state.loading) {
-                                    onDelete(item.id)
+                                    onDelete(described.id)
                                 },
                             text = "x",
                             style = TextStyle(color = Color.White),

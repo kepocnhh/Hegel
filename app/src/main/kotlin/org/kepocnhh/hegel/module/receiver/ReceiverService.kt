@@ -7,9 +7,7 @@ import org.kepocnhh.hegel.entity.Foo
 import org.kepocnhh.hegel.entity.ItemsSyncMergeRequest
 import org.kepocnhh.hegel.entity.ItemsSyncMergeResponse
 import org.kepocnhh.hegel.entity.ItemsSyncResponse
-import org.kepocnhh.hegel.entity.Meta
 import org.kepocnhh.hegel.entity.Session
-import org.kepocnhh.hegel.provider.Serializer
 import org.kepocnhh.hegel.provider.Storage
 import org.kepocnhh.hegel.util.http.HttpRequest
 import org.kepocnhh.hegel.util.http.HttpResponse
@@ -48,11 +46,7 @@ internal class ReceiverService : HttpService(_state) {
         val response = ItemsSyncMergeResponse(
             items = App.injection.locals.foo.items.filter { request.download.contains(it.id) }
         )
-        val items = App.injection.locals.foo.items.toMutableList()
-        items.removeIf { request.deleted.contains(it.id) }
-        items.removeIf { item -> request.items.any { it.id == item.id } }
-        items.addAll(request.items)
-        App.injection.locals.foo.items = items
+        App.injection.locals.foo.merge(items = request.items, deleted = request.deleted)
         App.injection.locals.session = null
         val body = App.injection.serializer.remote.mergeResponse.encode(response)
         return HttpResponse(
@@ -97,7 +91,7 @@ internal class ReceiverService : HttpService(_state) {
         App.injection.locals.session = session
         val response = ItemsSyncResponse.NeedUpdate(
             sessionId = session.id,
-            metas = storage.metas,
+            info = storage.items.associate { it.id to it.info },
             deleted = storage.deleted,
         )
         val body = App.injection.serializer.remote.needUpdate.encode(response)
@@ -116,8 +110,8 @@ internal class ReceiverService : HttpService(_state) {
         logger.debug("on post items sync...")
         val bytes = request.body ?: TODO()
         val syncRequest = App.injection.serializer.remote.syncRequest.decode(bytes)
-        return when (syncRequest.id) {
-            Foo.META_ID -> onMetaSync(syncRequest.hash, App.injection.locals.foo)
+        return when (syncRequest.storageId) {
+            Foo.STORAGE_ID -> onMetaSync(syncRequest.hash, App.injection.locals.foo)
             else -> TODO()
         }
     }

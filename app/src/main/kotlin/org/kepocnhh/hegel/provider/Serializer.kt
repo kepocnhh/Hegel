@@ -1,12 +1,11 @@
 package org.kepocnhh.hegel.provider
 
+import org.kepocnhh.hegel.entity.Described
 import org.kepocnhh.hegel.entity.Foo
 import org.kepocnhh.hegel.entity.ItemsSyncMergeRequest
 import org.kepocnhh.hegel.entity.ItemsSyncMergeResponse
 import org.kepocnhh.hegel.entity.ItemsSyncRequest
 import org.kepocnhh.hegel.entity.ItemsSyncResponse
-import org.kepocnhh.hegel.entity.Meta
-import java.util.UUID
 
 internal interface Serializer {
     interface Remote {
@@ -16,8 +15,6 @@ internal interface Serializer {
         val mergeResponse: Transformer<ItemsSyncMergeResponse>
     }
 
-    val meta: ListTransformer<Meta>
-    val uuid: ListTransformer<UUID>
-    val foo: ListTransformer<Foo>
+    val foo: ListTransformer<Described<Foo>>
     val remote: Remote
 }

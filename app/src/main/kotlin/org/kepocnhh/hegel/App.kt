@@ -11,8 +11,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalView
 import kotlinx.coroutines.Dispatchers
+import org.kepocnhh.hegel.entity.Described
 import org.kepocnhh.hegel.entity.Foo
-import org.kepocnhh.hegel.entity.Meta
+import org.kepocnhh.hegel.entity.Info
 import org.kepocnhh.hegel.entity.Session
 import org.kepocnhh.hegel.module.app.Injection
 import org.kepocnhh.hegel.provider.Contexts
@@ -30,9 +31,7 @@ import sp.kx.logics.LogicsProvider
 import sp.kx.logics.contains
 import sp.kx.logics.get
 import sp.kx.logics.remove
-import java.util.Date
 import java.util.UUID
-import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.milliseconds
 
 internal class App : Application() {
@@ -58,6 +57,62 @@ internal class App : Application() {
     }
 
     private class MockLocals : Locals {
+        override var foo: Storage<Foo> = object : Storage<Foo> {
+            override val id: UUID = Foo.STORAGE_ID
+            override val items = mutableListOf<Described<Foo>>()
+            override var hash: String = items.hash()
+            override val deleted = mutableListOf<UUID>()
+
+            override fun delete(id: UUID) {
+                val index = items.indexOfFirst { it.id == id }
+                if (index < 0) return
+                items.removeAt(index)
+                deleted += id
+                hash = items.hash()
+            }
+
+            override fun add(item: Foo) {
+                val created = System.currentTimeMillis().milliseconds
+                items += Described(
+                    id = UUID.randomUUID(), // todo
+                    info = Info(
+                        created = created,
+                        updated = created,
+                        hash = item.hashCode().toString(), // todo
+                    ),
+                    item = item,
+                )
+                hash = items.hash()
+            }
+
+            override fun update(id: UUID, item: Foo) {
+                val index = items.indexOfFirst { it.id == id }
+                if (index < 0) TODO()
+                val oldItem = items[index]
+                items.removeAt(index)
+                items += oldItem.copy(
+                    info = oldItem.info.copy(
+                        updated = System.currentTimeMillis().milliseconds,
+                        hash = item.hashCode().toString(), // todo
+                    ),
+                    item = item,
+                )
+                hash = items.hash()
+            }
+
+            override fun merge(items: List<Described<Foo>>, deleted: List<UUID>) {
+                this.items.removeIf { item -> deleted.contains(item.id) }
+                this.items.removeIf { item -> items.any { it.id == item.id } }
+                this.items.addAll(items)
+                hash = items.hash()
+            }
+
+            private fun Iterable<Described<Foo>>.hash(): String {
+                return joinToString(separator = "") { it.info.hash }.hashCode().toString()
+            }
+        }
+
+        /*
         override var foo: Storage<Foo> = object : Storage<Foo> {
             override val id: UUID = Foo.META_ID
             override var metas: List<Meta> = emptyList()
@@ -88,6 +143,7 @@ internal class App : Application() {
                 }
             override var deleted: List<UUID> = emptyList()
         }
+        */
 
         override var session: Session? = null
     }
