@@ -83,7 +83,7 @@ internal class JsonSerializer : Serializer {
         }
     }
 
-    private fun <T : Any> List<T>.strings(transform: (T) -> String): JSONArray {
+    private fun <T : Any> Iterable<T>.strings(transform: (T) -> String): JSONArray {
         val array = JSONArray()
         for (it in this) {
             array.put(transform(it))
@@ -156,7 +156,7 @@ internal class JsonSerializer : Serializer {
                 return ItemsSyncResponse.NeedUpdate(
                     sessionId = UUID.fromString(obj.getString("sessionId")),
                     info = obj.getJSONObject("info").toMap(keys = UUID::fromString, values = { it.toInfo() }),
-                    deleted = obj.getJSONArray("deleted").strings(UUID::fromString),
+                    deleted = obj.getJSONArray("deleted").strings(UUID::fromString).toSet(),
                 )
             }
         }
@@ -174,9 +174,9 @@ internal class JsonSerializer : Serializer {
             override fun decode(bytes: ByteArray): ItemsSyncMergeRequest {
                 val obj = JSONObject(String(bytes))
                 return ItemsSyncMergeRequest(
-                    download = obj.getJSONArray("download").strings(UUID::fromString),
+                    download = obj.getJSONArray("download").strings(UUID::fromString).toSet(),
                     items = foo.list.decode(obj.getJSONArray("items").toString().toByteArray()),
-                    deleted = obj.getJSONArray("deleted").strings(UUID::fromString),
+                    deleted = obj.getJSONArray("deleted").strings(UUID::fromString).toSet(),
                 )
             }
         }

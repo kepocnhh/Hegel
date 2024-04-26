@@ -61,7 +61,7 @@ internal class App : Application() {
             override val id: UUID = Foo.STORAGE_ID
             override val items = mutableListOf<Described<Foo>>()
             override var hash: String = items.hash()
-            override val deleted = mutableListOf<UUID>()
+            override val deleted = mutableSetOf<UUID>()
 
             override fun delete(id: UUID) {
                 val index = items.indexOfFirst { it.id == id }
@@ -100,10 +100,11 @@ internal class App : Application() {
                 hash = items.hash()
             }
 
-            override fun merge(items: List<Described<Foo>>, deleted: List<UUID>) {
+            override fun merge(items: List<Described<Foo>>, deleted: Set<UUID>) {
                 this.items.removeIf { item -> deleted.contains(item.id) }
                 this.items.removeIf { item -> items.any { it.id == item.id } }
                 this.items.addAll(items)
+                this.deleted += deleted
                 hash = items.hash()
             }
 
@@ -111,39 +112,6 @@ internal class App : Application() {
                 return joinToString(separator = "") { it.info.hash }.hashCode().toString()
             }
         }
-
-        /*
-        override var foo: Storage<Foo> = object : Storage<Foo> {
-            override val id: UUID = Foo.META_ID
-            override var metas: List<Meta> = emptyList()
-            override var hash: String = metas.joinToString(separator = "") { it.hash }.hashCode().toString() // todo
-            override var items: List<Foo> = emptyList()
-                set(value) {
-                    val deleted = deleted.toMutableSet()
-                    for (old in field) {
-                        if (value.none { it.id == old.id }) {
-                            deleted += old.id
-                        }
-                    }
-                    this.deleted = deleted.toList()
-                    val metas = value.map { item ->
-                        val hash = item.hashCode().toString() // todo
-                        metas.firstOrNull { it.id == item.id }
-                            ?.takeIf { it.hash == hash }
-                            ?: Meta(
-                                id = item.id,
-                                updated = System.currentTimeMillis().milliseconds,
-                                hash = hash,
-                            )
-                    }
-//                    val equals = metas.sortedBy { it.id }.map { it.hash } == this.metas.sortedBy { it.id }.map { it.hash } // todo
-                    this.metas = metas
-                    hash = metas.joinToString(separator = "") { it.hash }.hashCode().toString() // todo
-                    field = value
-                }
-            override var deleted: List<UUID> = emptyList()
-        }
-        */
 
         override var session: Session? = null
     }

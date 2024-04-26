@@ -66,7 +66,7 @@ internal class FooLogics(
         _state.emit(State(loading = false, items = items))
     }
 
-    private suspend fun onSyncMerge(response: ItemsSyncMergeResponse, deleted: List<UUID>) {
+    private suspend fun onSyncMerge(response: ItemsSyncMergeResponse, deleted: Set<UUID>) {
         logger.debug("sync merge...")
         withContext(injection.contexts.default) {
             injection.locals.foo.merge(response.items, deleted)
@@ -77,7 +77,7 @@ internal class FooLogics(
         _state.emit(State(loading = false, items = items))
     }
 
-    private suspend fun onSyncMerge(result: Result<ItemsSyncMergeResponse>, deleted: List<UUID>) {
+    private suspend fun onSyncMerge(result: Result<ItemsSyncMergeResponse>, deleted: Set<UUID>) {
         if (result.isFailure) {
             logger.warning("sync merge: " + result.exceptionOrNull())
             _state.emit(State(loading = false, items = state.value?.items.orEmpty()))
@@ -88,7 +88,7 @@ internal class FooLogics(
 
     private suspend fun onNeedUpdate(response: ItemsSyncResponse.NeedUpdate) {
         logger.debug("need update...")
-        val download = mutableListOf<UUID>()
+        val download = mutableSetOf<UUID>()
         val items = mutableListOf<Described<Foo>>()
         withContext(injection.contexts.default) {
             for (described in injection.locals.foo.items) {
