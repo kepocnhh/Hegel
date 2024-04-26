@@ -122,12 +122,66 @@ internal class JsonSerializer : Serializer {
         return map
     }
 
+    private fun <K : Any, V: Any> JSONObject.strings(
+        keys: (String) -> K,
+        values: (String) -> V,
+    ): Map<K, V> {
+        val map = mutableMapOf<K, V>()
+        for (key in keys()) {
+            map[keys(key)] = values(getString(key))
+        }
+        return map
+    }
+
+    private fun <K : Any> JSONObject.strings(
+        keys: (String) -> K,
+    ): Map<K, String> {
+        val map = mutableMapOf<K, String>()
+        for (key in keys()) {
+            map[keys(key)] = getString(key)
+        }
+        return map
+    }
+
+    private fun <K : Any, V: Any> Map<K, V>.toStrings(
+        keys: (K) -> String,
+        values: (V) -> String,
+    ): JSONObject {
+        val obj = JSONObject()
+        for ((key, value) in this) {
+            obj.put(keys(key), values(value))
+        }
+        return obj
+    }
+
+    private fun <K : Any> Map<K, String>.toStrings(
+        keys: (K) -> String,
+    ): JSONObject {
+        val obj = JSONObject()
+        for ((key, value) in this) {
+            obj.put(keys(key), value)
+        }
+        return obj
+    }
+
+    private fun ItemsSyncResponse.NeedUpdate.StorageInfo.toJSONObject(): JSONObject {
+        return JSONObject()
+            .put("deleted", deleted.strings { it.toString() })
+            .put("info", info.toJSONObject(keys = UUID::toString, values = { it.toJSONObject() }))
+    }
+
+    private fun JSONObject.toStorageInfo(): ItemsSyncResponse.NeedUpdate.StorageInfo {
+        return ItemsSyncResponse.NeedUpdate.StorageInfo(
+            deleted = getJSONArray("deleted").strings(UUID::fromString).toSet(),
+            info = getJSONObject("info").toMap(keys = UUID::fromString, values = { it.toInfo() }),
+        )
+    }
+
     override val remote: Serializer.Remote = object : Serializer.Remote {
         override val syncRequest: Transformer<ItemsSyncRequest> = object : Transformer<ItemsSyncRequest> {
             override fun encode(value: ItemsSyncRequest): ByteArray {
                 return JSONObject()
-                    .put("storageId", value.storageId.toString())
-                    .put("hash", value.hash)
+                    .put("hashes", value.hashes.toStrings(keys = UUID::toString))
                     .toString()
                     .toByteArray()
             }
@@ -135,8 +189,7 @@ internal class JsonSerializer : Serializer {
             override fun decode(bytes: ByteArray): ItemsSyncRequest {
                 val obj = JSONObject(String(bytes))
                 return ItemsSyncRequest(
-                    storageId = UUID.fromString(obj.getString("storageId")),
-                    hash = obj.getString("hash"),
+                    hashes = obj.getJSONObject("hashes").strings(keys = UUID::fromString),
                 )
             }
         }
@@ -145,8 +198,7 @@ internal class JsonSerializer : Serializer {
             override fun encode(value: ItemsSyncResponse.NeedUpdate): ByteArray {
                 return JSONObject()
                     .put("sessionId", value.sessionId.toString())
-                    .put("info", value.info.toJSONObject(keys = UUID::toString, values = { it.toJSONObject() }))
-                    .put("deleted", value.deleted.strings { it.toString() })
+                    .put("storages", value.storages.toJSONObject(keys = UUID::toString, values = { it.toJSONObject() }))
                     .toString()
                     .toByteArray()
             }
@@ -155,8 +207,7 @@ internal class JsonSerializer : Serializer {
                 val obj = JSONObject(String(bytes))
                 return ItemsSyncResponse.NeedUpdate(
                     sessionId = UUID.fromString(obj.getString("sessionId")),
-                    info = obj.getJSONObject("info").toMap(keys = UUID::fromString, values = { it.toInfo() }),
-                    deleted = obj.getJSONArray("deleted").strings(UUID::fromString).toSet(),
+                    storages = obj.getJSONObject("storages").toMap(keys = UUID::fromString, values = { it.toStorageInfo() }),
                 )
             }
         }

@@ -66,7 +66,7 @@ internal class ReceiverService : HttpService(_state) {
         return onSyncMerge(App.injection.serializer.remote.syncMerge.decode(bytes))
     }
 
-    private fun onMetaSync(hash: String, storage: Storage<*>): HttpResponse {
+    private fun onMetaSync(hashes: Map<UUID, String>): HttpResponse {
         val oldSession = App.injection.locals.session
         if (oldSession != null) {
             if (oldSession.expires > System.currentTimeMillis().milliseconds) {
@@ -78,7 +78,19 @@ internal class ReceiverService : HttpService(_state) {
                 App.injection.locals.session = null
             }
         }
-        if (storage.hash == hash) {
+        val storages = mutableMapOf<UUID, ItemsSyncResponse.NeedUpdate.StorageInfo>()
+        for ((id, hash) in hashes) {
+            val storage = when (id) {
+                Foo.STORAGE_ID -> App.injection.locals.foo
+                else -> TODO()
+            }
+            if (storage.hash == hash) continue
+            storages[id] = ItemsSyncResponse.NeedUpdate.StorageInfo(
+                info = storage.items.associate { it.id to it.info },
+                deleted = storage.deleted,
+            )
+        }
+        if (storages.isEmpty()) {
             return HttpResponse(
                 code = 304,
                 message = "Not Modified",
@@ -91,8 +103,7 @@ internal class ReceiverService : HttpService(_state) {
         App.injection.locals.session = session
         val response = ItemsSyncResponse.NeedUpdate(
             sessionId = session.id,
-            info = storage.items.associate { it.id to it.info },
-            deleted = storage.deleted,
+            storages = storages,
         )
         val body = App.injection.serializer.remote.needUpdate.encode(response)
         return HttpResponse(
@@ -110,10 +121,7 @@ internal class ReceiverService : HttpService(_state) {
         logger.debug("on post items sync...")
         val bytes = request.body ?: TODO()
         val syncRequest = App.injection.serializer.remote.syncRequest.decode(bytes)
-        return when (syncRequest.storageId) {
-            Foo.STORAGE_ID -> onMetaSync(syncRequest.hash, App.injection.locals.foo)
-            else -> TODO()
-        }
+        return onMetaSync(hashes = syncRequest.hashes)
     }
 
     override fun onSocketAccept(request: HttpRequest): HttpResponse {

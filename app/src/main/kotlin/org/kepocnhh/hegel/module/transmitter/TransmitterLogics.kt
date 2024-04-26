@@ -32,16 +32,16 @@ internal class TransmitterLogics(
     private val _broadcast = MutableSharedFlow<Broadcast>()
     val broadcast = _broadcast.asSharedFlow()
 
-    private suspend fun onSyncMerge(response: ItemsSyncMergeResponse, deleted: Set<UUID>) {
+    private suspend fun onSyncMerge(response: ItemsSyncMergeResponse, deleted: Map<UUID, Set<UUID>>) {
         logger.debug("sync merge...")
         withContext(injection.contexts.default) {
-            injection.locals.foo.merge(response.items, deleted)
+            injection.locals.foo.merge(response.items, deleted[Foo.STORAGE_ID] ?: TODO())
         }
         _state.value = State(loading = false)
         _broadcast.emit(Broadcast.OnSync(Result.success(Unit)))
     }
 
-    private suspend fun onSyncMerge(result: Result<ItemsSyncMergeResponse>, deleted: Set<UUID>) {
+    private suspend fun onSyncMerge(result: Result<ItemsSyncMergeResponse>, deleted: Map<UUID, Set<UUID>>) {
         if (result.isFailure) {
             val error = result.exceptionOrNull() ?: TODO()
             logger.warning("sync merge: $error")
@@ -57,21 +57,27 @@ internal class TransmitterLogics(
         val download = mutableSetOf<UUID>()
         val items = mutableListOf<Described<Foo>>()
         withContext(injection.contexts.default) {
-            for (described in injection.locals.foo.items) {
-                if (response.info.containsKey(described.id)) continue
-                if (response.deleted.contains(described.id)) continue
-                items.add(described)
-            }
-            for ((id, info) in response.info) {
-                val described = injection.locals.foo.items.firstOrNull { it.id == id }
-                if (described == null) {
-                    if (injection.locals.foo.deleted.contains(id)) continue
-                    download.add(id)
-                } else if (info.hash != described.info.hash) {
-                    if (info.updated > described.info.updated) {
+            for ((storageId, storageInfo) in response.storages) {
+                val storage = when (storageId) {
+                    Foo.STORAGE_ID -> injection.locals.foo
+                    else -> TODO()
+                }
+                for (described in storage.items) {
+                    if (storageInfo.info.containsKey(described.id)) continue
+                    if (storageInfo.deleted.contains(described.id)) continue
+                    items.add(described)
+                }
+                for ((id, info) in storageInfo.info) {
+                    val described = storage.items.firstOrNull { it.id == id }
+                    if (described == null) {
+                        if (injection.locals.foo.deleted.contains(id)) continue
                         download.add(id)
-                    } else {
-                        items.add(described)
+                    } else if (info.hash != described.info.hash) {
+                        if (info.updated > described.info.updated) {
+                            download.add(id)
+                        } else {
+                            items.add(described)
+                        }
                     }
                 }
             }
@@ -87,7 +93,7 @@ internal class TransmitterLogics(
                 injection.remotes.itemsSyncMerge(request)
             }
         }
-        onSyncMerge(result, deleted = response.deleted)
+        onSyncMerge(result, deleted = response.storages.mapValues { (_, value) -> value.deleted })
     }
 
     private suspend fun onResponse(response: ItemsSyncResponse) {
@@ -119,8 +125,9 @@ internal class TransmitterLogics(
         val result = withContext(injection.contexts.default) {
             runCatching {
                 val request = ItemsSyncRequest(
-                    storageId = Foo.STORAGE_ID,
-                    hash = injection.locals.foo.hash,
+                    hashes = mapOf(
+                        Foo.STORAGE_ID to injection.locals.foo.hash,
+                    ),
                 )
                 injection.remotes.itemsSync(request)
             }
