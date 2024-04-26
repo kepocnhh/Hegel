@@ -22,6 +22,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import org.kepocnhh.hegel.App
 import org.kepocnhh.hegel.module.receiver.ReceiverService
+import org.kepocnhh.hegel.util.compose.BackHandler
 import org.kepocnhh.hegel.util.http.HttpService
 import java.util.Date
 import java.util.UUID
@@ -133,7 +134,8 @@ private fun FooScreen(
 }
 
 @Composable
-internal fun FooScreen() {
+internal fun FooScreen(onBack: () -> Unit) {
+    BackHandler(block = onBack)
     val logics = App.logics<FooLogics>()
     val state = logics.state.collectAsState().value
     LaunchedEffect(Unit) {
