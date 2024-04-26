@@ -1,11 +1,16 @@
 package org.kepocnhh.hegel.provider
 
-import org.kepocnhh.hegel.entity.Meta
+import org.kepocnhh.hegel.entity.Described
 import java.util.UUID
 
 internal interface Storage<T : Any> {
-    val meta: Meta
-    val metas: List<Meta>
-    var items: List<T>
+    val id: UUID
+    val hash: String
+    val items: List<Described<T>>
     val deleted: List<UUID>
+
+    fun delete(id: UUID)
+    fun add(item: T)
+    fun update(id: UUID, item: T)
+    fun merge(items: List<Described<T>>, deleted: List<UUID>)
 }

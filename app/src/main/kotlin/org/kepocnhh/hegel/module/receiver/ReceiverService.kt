@@ -7,9 +7,7 @@ import org.kepocnhh.hegel.entity.Foo
 import org.kepocnhh.hegel.entity.ItemsSyncMergeRequest
 import org.kepocnhh.hegel.entity.ItemsSyncMergeResponse
 import org.kepocnhh.hegel.entity.ItemsSyncResponse
-import org.kepocnhh.hegel.entity.Meta
 import org.kepocnhh.hegel.entity.Session
-import org.kepocnhh.hegel.provider.Serializer
 import org.kepocnhh.hegel.provider.Storage
 import org.kepocnhh.hegel.util.http.HttpRequest
 import org.kepocnhh.hegel.util.http.HttpResponse
@@ -19,6 +17,7 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
 
 internal class ReceiverService : HttpService(_state) {
+    private val logger = App.injection.loggers.create("[Receiver]")
     private val routing = mapOf(
         "/v1/items/sync" to mapOf(
             "POST" to ::onPostItemsSync,
@@ -43,13 +42,13 @@ internal class ReceiverService : HttpService(_state) {
                 message = "TODO", // todo
             )
         }
+        logger.debug("receive: " + request.items.map { it.id })
         val response = ItemsSyncMergeResponse(
             items = App.injection.locals.foo.items.filter { request.download.contains(it.id) }
         )
-        App.injection.locals.foo.items = App.injection.locals.foo.items
-            .filter { !request.deleted.contains(it.id) } + request.items
+        App.injection.locals.foo.merge(items = request.items, deleted = request.deleted)
         App.injection.locals.session = null
-        val body = App.injection.serializer.mergeResponse.encode(response)
+        val body = App.injection.serializer.remote.mergeResponse.encode(response)
         return HttpResponse(
             code = 200,
             message = "OK",
@@ -62,11 +61,12 @@ internal class ReceiverService : HttpService(_state) {
     }
 
     private fun onPostItemsSyncMerge(request: HttpRequest): HttpResponse {
+        logger.debug("on post items sync merge...")
         val bytes = request.body ?: TODO()
-        return onSyncMerge(App.injection.serializer.syncMerge.decode(bytes))
+        return onSyncMerge(App.injection.serializer.remote.syncMerge.decode(bytes))
     }
 
-    private fun onMetaSync(meta: Meta, storage: Storage<*>): HttpResponse {
+    private fun onMetaSync(hash: String, storage: Storage<*>): HttpResponse {
         val oldSession = App.injection.locals.session
         if (oldSession != null) {
             if (oldSession.expires > System.currentTimeMillis().milliseconds) {
@@ -78,7 +78,7 @@ internal class ReceiverService : HttpService(_state) {
                 App.injection.locals.session = null
             }
         }
-        if (storage.meta.hash == meta.hash) {
+        if (storage.hash == hash) {
             return HttpResponse(
                 code = 304,
                 message = "Not Modified",
@@ -91,10 +91,10 @@ internal class ReceiverService : HttpService(_state) {
         App.injection.locals.session = session
         val response = ItemsSyncResponse.NeedUpdate(
             sessionId = session.id,
-            metas = storage.metas,
+            info = storage.items.associate { it.id to it.info },
             deleted = storage.deleted,
         )
-        val body = App.injection.serializer.needUpdate.encode(response)
+        val body = App.injection.serializer.remote.needUpdate.encode(response)
         return HttpResponse(
             code = 200,
             message = "OK",
@@ -107,10 +107,11 @@ internal class ReceiverService : HttpService(_state) {
     }
 
     private fun onPostItemsSync(request: HttpRequest): HttpResponse {
+        logger.debug("on post items sync...")
         val bytes = request.body ?: TODO()
-        val meta = App.injection.serializer.meta.decode(bytes)
-        return when (meta.id) {
-            Foo.META_ID -> onMetaSync(meta, App.injection.locals.foo)
+        val syncRequest = App.injection.serializer.remote.syncRequest.decode(bytes)
+        return when (syncRequest.storageId) {
+            Foo.STORAGE_ID -> onMetaSync(syncRequest.hash, App.injection.locals.foo)
             else -> TODO()
         }
     }

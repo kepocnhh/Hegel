@@ -31,6 +31,7 @@ private fun FooScreen(
     state: FooLogics.State,
     onDelete: (UUID) -> Unit,
     onAdd: () -> Unit,
+    onUpdate: (UUID) -> Unit,
     onTransmitter: () -> Unit,
     onReceiver: () -> Unit,
 ) {
@@ -42,18 +43,39 @@ private fun FooScreen(
         LazyColumn(
             contentPadding = App.Theme.insets,
         ) {
-            state.items.forEachIndexed { index, item ->
+            state.items.forEachIndexed { index, described ->
                 item(
-                    key = item.id,
+                    key = described.id,
                 ) {
-                    BasicText(
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable(enabled = !state.loading) {
-                                onDelete(item.id)
+                            .clickable {
+                                onUpdate(described.id)
                             },
-                        text = "$index) ${item.text}\nid: ${item.id}\ndate: ${Date(item.created.inWholeMilliseconds)}",
-                    )
+                    ) {
+                        val text = """
+                            $index) "${described.item.text}"
+                            id: ${described.id}
+                            created: ${Date(described.info.created.inWholeMilliseconds)}
+                            updated: ${Date(described.info.updated.inWholeMilliseconds)}
+                        """.trimIndent()
+                        BasicText(
+                            modifier = Modifier
+                                .weight(1f),
+                            text = text,
+                        )
+                        BasicText(
+                            modifier = Modifier
+                                .background(Color.Black)
+                                .padding(16.dp)
+                                .clickable(enabled = !state.loading) {
+                                    onDelete(described.id)
+                                },
+                            text = "x",
+                            style = TextStyle(color = Color.White),
+                        )
+                    }
                 }
             }
         }
@@ -125,7 +147,10 @@ internal fun FooScreen() {
         state = state,
         onDelete = logics::deleteItem,
         onAdd = {
-            logics.addItem(text = "foo:" + System.currentTimeMillis() % 64 + ":text")
+            logics.addItem(text = "foo:" + System.currentTimeMillis() % 256 + ":text")
+        },
+        onUpdate = { id: UUID ->
+            logics.updateItem(id = id, text = "foo:" + System.currentTimeMillis() % 256 + ":updated")
         },
         onTransmitter = {
             logics.syncItems()
