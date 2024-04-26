@@ -1,6 +1,8 @@
 package org.kepocnhh.hegel.module.transmitter
 
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import org.kepocnhh.hegel.entity.Described
@@ -16,6 +18,10 @@ import java.util.UUID
 internal class TransmitterLogics(
     private val injection: Injection,
 ) : Logics(injection.contexts.main) {
+    sealed interface Broadcast {
+        class OnSync(val result: Result<Unit>) : Broadcast
+    }
+
     data class State(
         val loading: Boolean,
     )
@@ -23,22 +29,24 @@ internal class TransmitterLogics(
     private val logger = injection.loggers.create("[Transmitter]")
     private val _state = MutableStateFlow(State(loading = false))
     val state = _state.asStateFlow()
+    private val _broadcast = MutableSharedFlow<Broadcast>()
+    val broadcast = _broadcast.asSharedFlow()
 
     private suspend fun onSyncMerge(response: ItemsSyncMergeResponse, deleted: Set<UUID>) {
         logger.debug("sync merge...")
         withContext(injection.contexts.default) {
             injection.locals.foo.merge(response.items, deleted)
         }
-        val items = withContext(injection.contexts.default) {
-            injection.locals.foo.items
-        } // todo
         _state.value = State(loading = false)
+        _broadcast.emit(Broadcast.OnSync(Result.success(Unit)))
     }
 
     private suspend fun onSyncMerge(result: Result<ItemsSyncMergeResponse>, deleted: Set<UUID>) {
         if (result.isFailure) {
-            logger.warning("sync merge: " + result.exceptionOrNull())
+            val error = result.exceptionOrNull() ?: TODO()
+            logger.warning("sync merge: $error")
             _state.value = State(loading = false)
+            _broadcast.emit(Broadcast.OnSync(Result.failure(error)))
             return
         }
         onSyncMerge(result.getOrThrow(), deleted = deleted)
@@ -96,8 +104,10 @@ internal class TransmitterLogics(
 
     private suspend fun onResponse(result: Result<ItemsSyncResponse>) {
         if (result.isFailure) {
-            logger.warning("sync items: " + result.exceptionOrNull())
+            val error = result.exceptionOrNull() ?: TODO()
+            logger.warning("sync items: $error")
             _state.value = State(loading = false)
+            _broadcast.emit(Broadcast.OnSync(Result.failure(error)))
             return
         }
         onResponse(result.getOrThrow())
