@@ -11,7 +11,10 @@ import org.kepocnhh.hegel.entity.ItemsSyncMergeRequest
 import org.kepocnhh.hegel.entity.ItemsSyncMergeResponse
 import org.kepocnhh.hegel.entity.ItemsSyncRequest
 import org.kepocnhh.hegel.entity.ItemsSyncResponse
+import org.kepocnhh.hegel.entity.MergeInfo
+import org.kepocnhh.hegel.entity.StorageInfo
 import org.kepocnhh.hegel.module.app.Injection
+import org.kepocnhh.hegel.provider.Storage
 import sp.kx.logics.Logics
 import java.util.UUID
 
@@ -52,44 +55,56 @@ internal class TransmitterLogics(
         onSyncMerge(result.getOrThrow(), deleted = deleted)
     }
 
+    private fun <T : Any> getMergeInfo(storage: Storage<T>, storageInfo: StorageInfo): MergeInfo<T> {
+        val download = mutableSetOf<UUID>()
+        val items = mutableListOf<Described<T>>()
+        for (described in storage.items) {
+            if (storageInfo.meta.containsKey(described.id)) continue
+            if (storageInfo.deleted.contains(described.id)) continue
+            items.add(described)
+        }
+        for ((id, info) in storageInfo.meta) {
+            val described = storage.items.firstOrNull { it.id == id }
+            if (described == null) {
+                if (injection.locals.foo.deleted.contains(id)) continue
+                download.add(id)
+            } else if (info.hash != described.info.hash) {
+                if (info.updated > described.info.updated) {
+                    download.add(id)
+                } else {
+                    items.add(described)
+                }
+            }
+        }
+        return MergeInfo(
+            download = download,
+            items = items,
+            deleted = storage.deleted,
+        )
+    }
+
     private suspend fun onNeedUpdate(response: ItemsSyncResponse.NeedUpdate) {
         logger.debug("need update...")
-        val download = mutableSetOf<UUID>()
-        val items = mutableListOf<Described<Foo>>()
+        val storages = mutableMapOf<UUID, MergeInfo<out Any>>()
         withContext(injection.contexts.default) {
             for ((storageId, storageInfo) in response.storages) {
                 val storage = when (storageId) {
                     Foo.STORAGE_ID -> injection.locals.foo
                     else -> TODO()
                 }
-                for (described in storage.items) {
-                    if (storageInfo.info.containsKey(described.id)) continue
-                    if (storageInfo.deleted.contains(described.id)) continue
-                    items.add(described)
-                }
-                for ((id, info) in storageInfo.info) {
-                    val described = storage.items.firstOrNull { it.id == id }
-                    if (described == null) {
-                        if (injection.locals.foo.deleted.contains(id)) continue
-                        download.add(id)
-                    } else if (info.hash != described.info.hash) {
-                        if (info.updated > described.info.updated) {
-                            download.add(id)
-                        } else {
-                            items.add(described)
-                        }
-                    }
-                }
+                val mergeInfo = getMergeInfo(storage, storageInfo)
+                storages[storageId] = mergeInfo
             }
         }
         val result = withContext(injection.contexts.default) {
             runCatching {
                 val request = ItemsSyncMergeRequest(
-                    download = download,
-                    items = items,
-                    deleted = injection.locals.foo.deleted,
+                    sessionId = response.sessionId,
+                    storages = storages,
                 )
-                logger.debug("upload: " + request.items.map { it.id })
+                storages.forEach { (storageId, mergeInfo) ->
+                    logger.debug("upload[$storageId]: " + mergeInfo.items.map { it.id }) // todo
+                }
                 injection.remotes.itemsSyncMerge(request)
             }
         }

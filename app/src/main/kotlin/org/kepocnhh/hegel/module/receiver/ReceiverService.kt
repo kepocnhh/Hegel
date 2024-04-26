@@ -3,11 +3,14 @@ package org.kepocnhh.hegel.module.receiver
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import org.kepocnhh.hegel.App
+import org.kepocnhh.hegel.entity.Described
 import org.kepocnhh.hegel.entity.Foo
 import org.kepocnhh.hegel.entity.ItemsSyncMergeRequest
 import org.kepocnhh.hegel.entity.ItemsSyncMergeResponse
 import org.kepocnhh.hegel.entity.ItemsSyncResponse
+import org.kepocnhh.hegel.entity.MergeInfo
 import org.kepocnhh.hegel.entity.Session
+import org.kepocnhh.hegel.entity.StorageInfo
 import org.kepocnhh.hegel.provider.Storage
 import org.kepocnhh.hegel.util.http.HttpRequest
 import org.kepocnhh.hegel.util.http.HttpResponse
@@ -27,9 +30,20 @@ internal class ReceiverService : HttpService(_state) {
         ),
     )
 
+    private fun <T : Any> merge(storage: Storage<T>, mergeInfo: MergeInfo<T>) {
+        logger.debug("receive: " + mergeInfo.items.map { it.id }) // todo
+        storage.merge(items = mergeInfo.items, deleted = mergeInfo.deleted)
+    }
+
     private fun onSyncMerge(request: ItemsSyncMergeRequest): HttpResponse {
         val oldSession = App.injection.locals.session
         if (oldSession == null) {
+            return HttpResponse(
+                code = 500,
+                message = "TODO", // todo
+            )
+        }
+        if (oldSession.id != request.sessionId) {
             return HttpResponse(
                 code = 500,
                 message = "TODO", // todo
@@ -42,11 +56,19 @@ internal class ReceiverService : HttpService(_state) {
                 message = "TODO", // todo
             )
         }
-        logger.debug("receive: " + request.items.map { it.id })
+        for ((id, mergeInfo) in request.storages) {
+            val storage = when (id) {
+                Foo.STORAGE_ID -> App.injection.locals.foo
+                else -> TODO()
+            }
+            if (mergeInfo as? MergeInfo<Foo> == null) TODO()
+            logger.debug("receive: " + mergeInfo.items.map { it.id })
+            storage.merge(items = mergeInfo.items, deleted = mergeInfo.deleted)
+        }
         val response = ItemsSyncMergeResponse(
-            items = App.injection.locals.foo.items.filter { request.download.contains(it.id) }
+            // todo
+            items = App.injection.locals.foo.items.filter { request.storages[Foo.STORAGE_ID]!!.download.contains(it.id) }
         )
-        App.injection.locals.foo.merge(items = request.items, deleted = request.deleted)
         App.injection.locals.session = null
         val body = App.injection.serializer.remote.mergeResponse.encode(response)
         return HttpResponse(
@@ -78,15 +100,15 @@ internal class ReceiverService : HttpService(_state) {
                 App.injection.locals.session = null
             }
         }
-        val storages = mutableMapOf<UUID, ItemsSyncResponse.NeedUpdate.StorageInfo>()
+        val storages = mutableMapOf<UUID, StorageInfo>()
         for ((id, hash) in hashes) {
             val storage = when (id) {
                 Foo.STORAGE_ID -> App.injection.locals.foo
                 else -> TODO()
             }
             if (storage.hash == hash) continue
-            storages[id] = ItemsSyncResponse.NeedUpdate.StorageInfo(
-                info = storage.items.associate { it.id to it.info },
+            storages[id] = StorageInfo(
+                meta = storage.items.associate { it.id to it.info },
                 deleted = storage.deleted,
             )
         }
