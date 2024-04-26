@@ -92,7 +92,7 @@ internal class FooLogics(
         val items = mutableListOf<Described<Foo>>()
         withContext(injection.contexts.default) {
             for (described in injection.locals.foo.items) {
-                if (!response.info.containsKey(described.id)) continue
+                if (response.info.containsKey(described.id)) continue
                 if (response.deleted.contains(described.id)) continue
                 items.add(described)
             }

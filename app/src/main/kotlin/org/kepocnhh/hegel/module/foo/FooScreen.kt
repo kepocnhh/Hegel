@@ -54,10 +54,16 @@ private fun FooScreen(
                                 onUpdate(described.id)
                             },
                     ) {
+                        val text = """
+                            $index) "${described.item.text}"
+                            id: ${described.id}
+                            created: ${Date(described.info.created.inWholeMilliseconds)}
+                            updated: ${Date(described.info.updated.inWholeMilliseconds)}
+                        """.trimIndent()
                         BasicText(
                             modifier = Modifier
                                 .weight(1f),
-                            text = "$index) ${described.item.text}\nid: ${described.id}\ndate: ${Date(described.info.created.inWholeMilliseconds)}",
+                            text = text,
                         )
                         BasicText(
                             modifier = Modifier
