@@ -15,6 +15,7 @@ import org.kepocnhh.hegel.module.foo.FooScreen
 import org.kepocnhh.hegel.module.receiver.ReceiverScreen
 import org.kepocnhh.hegel.module.receiver.ReceiverService
 import org.kepocnhh.hegel.module.router.RouterScreen
+import org.kepocnhh.hegel.module.transmitter.TransmitterScreen
 import org.kepocnhh.hegel.util.compose.BackHandler
 import org.kepocnhh.hegel.util.http.HttpService
 
@@ -55,6 +56,11 @@ internal class MainActivity : AppCompatActivity() {
                             },
                         )
                         RouterScreen.State.Receiver -> ReceiverScreen(
+                            onBack = {
+                                state.value = null
+                            },
+                        )
+                        RouterScreen.State.Transmitter -> TransmitterScreen(
                             onBack = {
                                 state.value = null
                             },

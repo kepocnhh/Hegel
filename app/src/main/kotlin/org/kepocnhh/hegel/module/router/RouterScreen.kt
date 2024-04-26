@@ -20,6 +20,7 @@ internal object RouterScreen {
     enum class State {
         Foo,
         Receiver,
+        Transmitter,
     }
 }
 
