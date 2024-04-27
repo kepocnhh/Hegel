@@ -4,5 +4,5 @@ import java.util.UUID
 
 internal data class ItemsSyncMergeRequest(
     val sessionId: UUID,
-    val storages: Map<UUID, MergeInfo<out Any>>
+    val storages: Map<UUID, MergeInfo>
 )

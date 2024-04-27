@@ -11,6 +11,7 @@ import org.kepocnhh.hegel.entity.ItemsSyncRequest
 import org.kepocnhh.hegel.entity.ItemsSyncResponse
 import org.kepocnhh.hegel.entity.MergeInfo
 import org.kepocnhh.hegel.entity.StorageInfo
+import java.util.Base64
 import java.util.UUID
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -48,11 +49,34 @@ internal class JsonSerializer : Serializer {
             .put("item", transform(item))
     }
 
+    private fun ByteArray.base64(): String {
+        return Base64.getEncoder().encodeToString(this)
+    }
+
+    private fun String.base64(): ByteArray {
+        return Base64.getDecoder().decode(this)
+    }
+
+    private fun Described<ByteArray>.toJSONObject(): JSONObject {
+        return JSONObject()
+            .put("id", id.toString())
+            .put("info", info.toJSONObject())
+            .put("item", item.base64())
+    }
+
     private fun <T : Any> JSONObject.toDescribed(transform: (JSONObject) -> T): Described<T> {
         return Described(
             id = UUID.fromString(getString("id")),
             info = getJSONObject("info").toInfo(),
             item = transform(getJSONObject("item")),
+        )
+    }
+
+    private fun JSONObject.toDescribed(): Described<ByteArray> {
+        return Described(
+            id = UUID.fromString(getString("id")),
+            info = getJSONObject("info").toInfo(),
+            item = getString("item").base64(),
         )
     }
 
@@ -128,15 +152,35 @@ internal class JsonSerializer : Serializer {
         return obj
     }
 
+    private fun <K : Any, V: Any> Map<K, V>.arrays(
+        keys: (K) -> String,
+        values: (V) -> JSONArray,
+    ): JSONObject {
+        val obj = JSONObject()
+        for ((key, value) in this) {
+            obj.put(keys(key), values(value))
+        }
+        return obj
+    }
+
     private fun <K : Any, V: Any> JSONObject.toMap(
         keys: (String) -> K,
-        values: (K, JSONObject) -> V,
+        values: (JSONObject) -> V,
     ): Map<K, V> {
         val map = mutableMapOf<K, V>()
-        for (name in keys()) {
-            val key = keys(name)
-            val value = getJSONObject(name)
-            map[key] = values(key, value)
+        for (key in keys()) {
+            map[keys(key)] = values(getJSONObject(key))
+        }
+        return map
+    }
+
+    private fun <K : Any, V: Any> JSONObject.arrays(
+        keys: (String) -> K,
+        values: (JSONArray) -> V,
+    ): Map<K, V> {
+        val map = mutableMapOf<K, V>()
+        for (key in keys()) {
+            map[keys(key)] = values(getJSONArray(key))
         }
         return map
     }
@@ -192,22 +236,22 @@ internal class JsonSerializer : Serializer {
     private fun JSONObject.toStorageInfo(): StorageInfo {
         return StorageInfo(
             deleted = getJSONArray("deleted").strings(UUID::fromString).toSet(),
-            meta = getJSONObject("meta").toMap(keys = UUID::fromString, values = { _, it -> it.toInfo() }),
+            meta = getJSONObject("meta").toMap(keys = UUID::fromString, values = { it.toInfo() }),
         )
     }
 
-    private fun <T : Any> MergeInfo<T>.toJSONObject(transform: (T) -> JSONObject): JSONObject {
+    private fun MergeInfo.toJSONObject(): JSONObject {
         return JSONObject()
             .put("deleted", deleted.strings { it.toString() })
             .put("download", download.strings { it.toString() })
-            .put("items", items.objects { it.toJSONObject(transform) })
+            .put("items", items.objects { it.toJSONObject() })
     }
 
-    private fun <T : Any> JSONObject.toMergeInfo(transform: (JSONObject) -> T): MergeInfo<T> {
+    private fun JSONObject.toMergeInfo(): MergeInfo {
         return MergeInfo(
             deleted = getJSONArray("deleted").strings(UUID::fromString).toSet(),
             download = getJSONArray("download").strings(UUID::fromString).toSet(),
-            items = getJSONArray("items").objects { it.toDescribed(transform) },
+            items = getJSONArray("items").objects { it.toDescribed() },
         )
     }
 
@@ -241,7 +285,7 @@ internal class JsonSerializer : Serializer {
                 val obj = JSONObject(String(bytes))
                 return ItemsSyncResponse.NeedUpdate(
                     sessionId = UUID.fromString(obj.getString("sessionId")),
-                    storages = obj.getJSONObject("storages").toMap(keys = UUID::fromString, values = { _, it -> it.toStorageInfo() }),
+                    storages = obj.getJSONObject("storages").toMap(keys = UUID::fromString, values = { it.toStorageInfo() }),
                 )
             }
         }
@@ -250,17 +294,7 @@ internal class JsonSerializer : Serializer {
             override fun encode(value: ItemsSyncMergeRequest): ByteArray {
                 val storages = value.storages.toJSONObject(
                     keys = UUID::toString,
-                    values = { key, mergeInfo ->
-                        when (key) {
-                            Foo.STORAGE_ID -> {
-                                mergeInfo.toJSONObject {
-                                    check(it is Foo)
-                                    it.toJSONObject()
-                                }
-                            }
-                            else -> TODO()
-                        }
-                    },
+                    values = { _, it -> it.toJSONObject() },
                 )
                 return JSONObject()
                     .put("sessionId", value.sessionId.toString())
@@ -275,14 +309,7 @@ internal class JsonSerializer : Serializer {
                     .getJSONObject("storages")
                     .toMap(
                         keys = UUID::fromString,
-                        values = { storageId, mi ->
-                            when (storageId) {
-                                Foo.STORAGE_ID -> {
-                                    mi.toMergeInfo { it.toFoo() }
-                                }
-                                else -> TODO()
-                            }
-                        },
+                        values = { it.toMergeInfo() },
                     )
                 return ItemsSyncMergeRequest(
                     sessionId = UUID.fromString(obj.getString("sessionId")),
@@ -293,18 +320,36 @@ internal class JsonSerializer : Serializer {
 
         override val mergeResponse: Transformer<ItemsSyncMergeResponse> = object : Transformer<ItemsSyncMergeResponse> {
             override fun encode(value: ItemsSyncMergeResponse): ByteArray {
+                val storages = value.storages.arrays(
+                    keys = UUID::toString,
+                    values = { list -> list.objects { it.toJSONObject() } },
+                )
                 return JSONObject()
-                    .put("items", JSONArray(String(foo.list.encode(value.items))))
+                    .put("storages", storages)
                     .toString()
                     .toByteArray()
             }
 
             override fun decode(bytes: ByteArray): ItemsSyncMergeResponse {
                 val obj = JSONObject(String(bytes))
+                val storages = obj.getJSONObject("storages").arrays(
+                    keys = UUID::fromString,
+                    values = { array -> array.objects { it.toDescribed() } },
+                )
                 return ItemsSyncMergeResponse(
-                    items = foo.list.decode(obj.getJSONArray("items").toString().toByteArray()),
+                    storages = storages,
                 )
             }
+        }
+    }
+
+    override val fooItem = object : Transformer<Foo> {
+        override fun encode(value: Foo): ByteArray {
+            return value.toJSONObject().toString().toByteArray()
+        }
+
+        override fun decode(bytes: ByteArray): Foo {
+            return JSONObject(String(bytes)).toFoo()
         }
     }
 }

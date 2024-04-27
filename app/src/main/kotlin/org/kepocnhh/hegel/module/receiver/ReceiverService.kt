@@ -11,6 +11,7 @@ import org.kepocnhh.hegel.entity.ItemsSyncResponse
 import org.kepocnhh.hegel.entity.MergeInfo
 import org.kepocnhh.hegel.entity.Session
 import org.kepocnhh.hegel.entity.StorageInfo
+import org.kepocnhh.hegel.entity.map
 import org.kepocnhh.hegel.provider.Storage
 import org.kepocnhh.hegel.util.http.HttpRequest
 import org.kepocnhh.hegel.util.http.HttpResponse
@@ -29,11 +30,6 @@ internal class ReceiverService : HttpService(_state) {
             "POST" to ::onPostItemsSyncMerge,
         ),
     )
-
-    private fun <T : Any> merge(storage: Storage<T>, mergeInfo: MergeInfo<T>) {
-        logger.debug("receive: " + mergeInfo.items.map { it.id }) // todo
-        storage.merge(items = mergeInfo.items, deleted = mergeInfo.deleted)
-    }
 
     private fun onSyncMerge(request: ItemsSyncMergeRequest): HttpResponse {
         val oldSession = App.injection.locals.session
@@ -57,17 +53,31 @@ internal class ReceiverService : HttpService(_state) {
             )
         }
         for ((id, mergeInfo) in request.storages) {
-            val storage = when (id) {
-                Foo.STORAGE_ID -> App.injection.locals.foo
+            when (id) {
+                Foo.STORAGE_ID -> {
+                    logger.debug("receive: " + mergeInfo.items.map { it.id })
+                    val items = mergeInfo.items.map { it.map(App.injection.serializer.fooItem::decode) }
+                    App.injection.locals.foo.merge(items = items, deleted = mergeInfo.deleted)
+                }
                 else -> TODO()
             }
-            if (mergeInfo as? MergeInfo<Foo> == null) TODO()
-            logger.debug("receive: " + mergeInfo.items.map { it.id })
-            storage.merge(items = mergeInfo.items, deleted = mergeInfo.deleted)
         }
         val response = ItemsSyncMergeResponse(
-            // todo
-            items = App.injection.locals.foo.items.filter { request.storages[Foo.STORAGE_ID]!!.download.contains(it.id) }
+            storages = setOf(
+                App.injection.locals.foo,
+            ).associate { storage ->
+                val transformer = when (storage.id) {
+                    Foo.STORAGE_ID -> App.injection.serializer.fooItem
+                    else -> TODO()
+                }
+                val download = request.storages[storage.id]?.download.orEmpty()
+                val items = storage.items.filter {
+                    download.contains(it.id)
+                }.map {
+                    it.map(transformer::encode)
+                }
+                storage.id to items
+            },
         )
         App.injection.locals.session = null
         val body = App.injection.serializer.remote.mergeResponse.encode(response)

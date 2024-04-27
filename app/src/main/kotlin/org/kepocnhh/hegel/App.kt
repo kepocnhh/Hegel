@@ -15,6 +15,7 @@ import org.kepocnhh.hegel.entity.Described
 import org.kepocnhh.hegel.entity.Foo
 import org.kepocnhh.hegel.entity.Info
 import org.kepocnhh.hegel.entity.Session
+import org.kepocnhh.hegel.entity.map
 import org.kepocnhh.hegel.module.app.Injection
 import org.kepocnhh.hegel.provider.Contexts
 import org.kepocnhh.hegel.provider.FinalLoggers
@@ -108,7 +109,7 @@ internal class App : Application() {
                 hash = items.hash()
             }
 
-            private fun Iterable<Described<Foo>>.hash(): String {
+            private fun Iterable<Described<out Any>>.hash(): String {
                 return joinToString(separator = "") { it.info.hash }.hashCode().toString()
             }
         }
