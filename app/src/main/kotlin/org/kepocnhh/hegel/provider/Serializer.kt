@@ -1,5 +1,6 @@
 package org.kepocnhh.hegel.provider
 
+import org.kepocnhh.hegel.entity.Bar
 import org.kepocnhh.hegel.entity.Described
 import org.kepocnhh.hegel.entity.Foo
 import org.kepocnhh.hegel.entity.ItemsSyncMergeRequest
@@ -17,5 +18,7 @@ internal interface Serializer {
 
     val foo: ListTransformer<Described<Foo>>
     val fooItem: Transformer<Foo>
+    val bar: ListTransformer<Described<Bar>>
+    val barItem: Transformer<Bar>
     val remote: Remote
 }

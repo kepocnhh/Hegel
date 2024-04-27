@@ -2,6 +2,7 @@ package org.kepocnhh.hegel.provider
 
 import org.json.JSONArray
 import org.json.JSONObject
+import org.kepocnhh.hegel.entity.Bar
 import org.kepocnhh.hegel.entity.Described
 import org.kepocnhh.hegel.entity.Foo
 import org.kepocnhh.hegel.entity.Info
@@ -350,6 +351,47 @@ internal class JsonSerializer : Serializer {
 
         override fun decode(bytes: ByteArray): Foo {
             return JSONObject(String(bytes)).toFoo()
+        }
+    }
+
+    override val bar = object : ListTransformer<Described<Bar>> {
+        override fun encode(value: Described<Bar>): ByteArray {
+            return value.toJSONObject { it.toJSONObject() }.toString().toByteArray()
+        }
+
+        override val list = object : Transformer<List<Described<Bar>>> {
+            override fun encode(value: List<Described<Bar>>): ByteArray {
+                return value.objects { it.toJSONObject { bar -> bar.toJSONObject() } }.toString().toByteArray()
+            }
+
+            override fun decode(bytes: ByteArray): List<Described<Bar>> {
+                return JSONArray(String(bytes)).objects { it.toDescribed { obj -> obj.toBar() } }
+            }
+        }
+
+        override fun decode(bytes: ByteArray): Described<Bar> {
+            return JSONObject(String(bytes)).toDescribed { it.toBar() }
+        }
+    }
+
+    private fun Bar.toJSONObject(): JSONObject {
+        return JSONObject()
+            .put("count", count)
+    }
+
+    private fun JSONObject.toBar(): Bar {
+        return Bar(
+            count = getInt("count"),
+        )
+    }
+
+    override val barItem = object : Transformer<Bar> {
+        override fun encode(value: Bar): ByteArray {
+            return value.toJSONObject().toString().toByteArray()
+        }
+
+        override fun decode(bytes: ByteArray): Bar {
+            return JSONObject(String(bytes)).toBar()
         }
     }
 }

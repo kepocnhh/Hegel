@@ -11,6 +11,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ComposeView
+import org.kepocnhh.hegel.module.bar.BarScreen
 import org.kepocnhh.hegel.module.foo.FooScreen
 import org.kepocnhh.hegel.module.receiver.ReceiverScreen
 import org.kepocnhh.hegel.module.receiver.ReceiverService
@@ -51,6 +52,11 @@ internal class MainActivity : AppCompatActivity() {
                             },
                         )
                         RouterScreen.State.Foo -> FooScreen(
+                            onBack = {
+                                state.value = null
+                            },
+                        )
+                        RouterScreen.State.Bar -> BarScreen(
                             onBack = {
                                 state.value = null
                             },
