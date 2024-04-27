@@ -53,9 +53,9 @@ internal class ReceiverService : HttpService(_state) {
             )
         }
         for ((id, mergeInfo) in request.storages) {
+            logger.debug("receive: " + mergeInfo.items.map { it.id })
             when (id) {
                 Foo.STORAGE_ID -> {
-                    logger.debug("receive: " + mergeInfo.items.map { it.id })
                     val items = mergeInfo.items.map { it.map(App.injection.serializer.fooItem::decode) }
                     App.injection.locals.foo.merge(items = items, deleted = mergeInfo.deleted)
                 }
@@ -80,6 +80,13 @@ internal class ReceiverService : HttpService(_state) {
             },
         )
         App.injection.locals.session = null
+        // todo
+        setOf(
+            App.injection.locals.foo,
+        ).forEach { storage ->
+            logger.debug("hash[${storage.id}]: ${storage.hash}")
+        }
+        // todo
         val body = App.injection.serializer.remote.mergeResponse.encode(response)
         return HttpResponse(
             code = 200,
@@ -123,11 +130,20 @@ internal class ReceiverService : HttpService(_state) {
             )
         }
         if (storages.isEmpty()) {
+            logger.debug("not modified")
             return HttpResponse(
                 code = 304,
                 message = "Not Modified",
             )
         }
+        val modified = hashes.mapValues { (storageId, tHash) ->
+            val rHash = when (storageId) {
+                Foo.STORAGE_ID -> App.injection.locals.foo.hash
+                else -> TODO()
+            }
+            "r:$rHash / t:$tHash"
+        } // todo
+        logger.debug("modified: $modified")
         val session = Session(
             id = UUID.randomUUID(),
             expires = System.currentTimeMillis().milliseconds + 1.minutes,

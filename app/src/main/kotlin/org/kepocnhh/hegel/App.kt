@@ -106,11 +106,15 @@ internal class App : Application() {
                 this.items.removeIf { item -> items.any { it.id == item.id } }
                 this.items.addAll(items)
                 this.deleted += deleted
-                hash = items.hash()
+                hash = this.items.hash()
             }
 
-            private fun Iterable<Described<out Any>>.hash(): String {
-                return joinToString(separator = "") { it.info.hash }.hashCode().toString()
+            private fun Iterable<Described<Foo>>.hash(): String {
+                return sortedBy {
+                    it.info.created
+                }.joinToString(separator = "") {
+                    it.info.hash
+                }.hashCode().toString()
             }
         }
 

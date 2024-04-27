@@ -52,6 +52,13 @@ internal class TransmitterLogics(
                 }
             }
         }
+        // todo
+        setOf(
+            injection.locals.foo,
+        ).forEach { storage ->
+            logger.debug("hash[${storage.id}]: ${storage.hash}")
+        }
+        // todo
         _state.value = State(loading = false)
         _broadcast.emit(Broadcast.OnSync(Result.success(Unit)))
     }
@@ -135,6 +142,7 @@ internal class TransmitterLogics(
     private suspend fun onResponse(response: ItemsSyncResponse) {
         when (response) {
             ItemsSyncResponse.NotModified -> {
+                logger.debug("not modified")
                 _state.value = State(loading = false)
                 return
             }
