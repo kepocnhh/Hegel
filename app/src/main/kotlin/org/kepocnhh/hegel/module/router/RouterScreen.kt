@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 internal object RouterScreen {
     enum class State {
         Foo,
+        Bar,
         Receiver,
         Transmitter,
     }

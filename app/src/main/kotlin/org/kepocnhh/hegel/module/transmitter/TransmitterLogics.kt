@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
+import org.kepocnhh.hegel.entity.Bar
 import org.kepocnhh.hegel.entity.Described
 import org.kepocnhh.hegel.entity.Foo
 import org.kepocnhh.hegel.entity.ItemsSyncMergeRequest
@@ -48,16 +49,24 @@ internal class TransmitterLogics(
                         }
                         injection.locals.foo.merge(items, deleted[storageId].orEmpty())
                     }
+                    Bar.STORAGE_ID -> {
+                        val items = encoded.map {
+                            it.map(injection.serializer.barItem::decode)
+                        }
+                        injection.locals.bar.merge(items, deleted[storageId].orEmpty())
+                    }
                     else -> TODO()
                 }
             }
         }
         // todo
-        setOf(
+        val hashes = setOf(
             injection.locals.foo,
-        ).forEach { storage ->
-            logger.debug("hash[${storage.id}]: ${storage.hash}")
+            injection.locals.bar,
+        ).associate { storage ->
+            storage.id to storage.hash
         }
+        logger.debug("hashes: $hashes")
         // todo
         _state.value = State(loading = false)
         _broadcast.emit(Broadcast.OnSync(Result.success(Unit)))
@@ -89,7 +98,7 @@ internal class TransmitterLogics(
         for ((id, info) in storageInfo.meta) {
             val described = storage.items.firstOrNull { it.id == id }
             if (described == null) {
-                if (injection.locals.foo.deleted.contains(id)) continue
+                if (storage.deleted.contains(id)) continue
                 download.add(id)
             } else if (info.hash != described.info.hash) {
                 if (info.updated > described.info.updated) {
@@ -99,6 +108,7 @@ internal class TransmitterLogics(
                 }
             }
         }
+        logger.debug("download[${storage.id}]: $download")
         return MergeInfo(
             download = download,
             items = items,
@@ -108,6 +118,7 @@ internal class TransmitterLogics(
 
     private suspend fun onNeedUpdate(response: ItemsSyncResponse.NeedUpdate) {
         logger.debug("need update...")
+        logger.debug("storages: ${response.storages.map { (storageId, info) -> storageId to info.meta.map { (id, i) -> id to i.hash } }}")
         val storages = mutableMapOf<UUID, MergeInfo>()
         withContext(injection.contexts.default) {
             for ((storageId, storageInfo) in response.storages) {
@@ -117,6 +128,13 @@ internal class TransmitterLogics(
                             storage = injection.locals.foo,
                             storageInfo = storageInfo,
                             transformer = injection.serializer.fooItem,
+                        )
+                    }
+                    Bar.STORAGE_ID -> {
+                        getMergeInfo(
+                            storage = injection.locals.bar,
+                            storageInfo = storageInfo,
+                            transformer = injection.serializer.barItem,
                         )
                     }
                     else -> TODO()
@@ -169,10 +187,12 @@ internal class TransmitterLogics(
         val result = withContext(injection.contexts.default) {
             runCatching {
                 val request = ItemsSyncRequest(
-                    hashes = mapOf(
-                        Foo.STORAGE_ID to injection.locals.foo.hash,
-                    ),
+                    hashes = setOf(
+                        injection.locals.foo,
+                        injection.locals.bar,
+                    ).associate { it.id to it.hash },
                 )
+                logger.debug("hashes: ${request.hashes}")
                 injection.remotes.itemsSync(request)
             }
         }
