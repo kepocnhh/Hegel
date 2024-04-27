@@ -3,6 +3,7 @@ package org.kepocnhh.hegel.module.receiver
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import org.kepocnhh.hegel.App
+import org.kepocnhh.hegel.entity.Bar
 import org.kepocnhh.hegel.entity.Described
 import org.kepocnhh.hegel.entity.Foo
 import org.kepocnhh.hegel.entity.ItemsSyncMergeRequest
@@ -58,6 +59,10 @@ internal class ReceiverService : HttpService(_state) {
                 Foo.STORAGE_ID -> {
                     val items = mergeInfo.items.map { it.map(App.injection.serializer.fooItem::decode) }
                     App.injection.locals.foo.merge(items = items, deleted = mergeInfo.deleted)
+                }
+                Bar.STORAGE_ID -> {
+                    val items = mergeInfo.items.map { it.map(App.injection.serializer.barItem::decode) }
+                    App.injection.locals.bar.merge(items = items, deleted = mergeInfo.deleted)
                 }
                 else -> TODO()
             }
@@ -121,6 +126,7 @@ internal class ReceiverService : HttpService(_state) {
         for ((id, hash) in hashes) {
             val storage = when (id) {
                 Foo.STORAGE_ID -> App.injection.locals.foo
+                Bar.STORAGE_ID -> App.injection.locals.bar
                 else -> TODO()
             }
             if (storage.hash == hash) continue
@@ -139,6 +145,7 @@ internal class ReceiverService : HttpService(_state) {
         val modified = hashes.mapValues { (storageId, tHash) ->
             val rHash = when (storageId) {
                 Foo.STORAGE_ID -> App.injection.locals.foo.hash
+                Bar.STORAGE_ID -> App.injection.locals.bar.hash
                 else -> TODO()
             }
             "r:$rHash / t:$tHash"
