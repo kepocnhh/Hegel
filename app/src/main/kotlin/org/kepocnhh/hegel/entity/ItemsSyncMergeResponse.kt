@@ -1,5 +1,7 @@
 package org.kepocnhh.hegel.entity
 
+import java.util.UUID
+
 internal data class ItemsSyncMergeResponse(
-    val items: List<Described<Foo>>,
+    val storages: Map<UUID, List<Described<ByteArray>>>,
 )

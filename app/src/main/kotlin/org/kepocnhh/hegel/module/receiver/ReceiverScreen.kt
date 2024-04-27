@@ -26,13 +26,30 @@ import org.kepocnhh.hegel.util.compose.BackHandler
 import org.kepocnhh.hegel.util.http.HttpService
 
 @Composable
-internal fun ReceiverScreen() {
+internal fun ReceiverScreen(onBack: () -> Unit) {
+    val context = LocalContext.current
+    BackHandler {
+        when (ReceiverService.state.value) {
+            is HttpService.State.Started -> {
+                HttpService.startService<ReceiverService>(
+                    context,
+                    HttpService.Action.StopServer,
+                )
+            }
+            is HttpService.State.Stopped -> {
+                onBack()
+            }
+            else -> {
+                // noop
+            }
+        }
+    }
+    val state = ReceiverService.state.collectAsState().value
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White),
     ) {
-        val context = LocalContext.current
         val lifecycleOwner = LocalLifecycleOwner.current
         DisposableEffect(lifecycleOwner) {
             val observer = LifecycleEventObserver { _, event ->
@@ -52,7 +69,6 @@ internal fun ReceiverScreen() {
                 lifecycleOwner.lifecycle.removeObserver(observer)
             }
         }
-        val state = ReceiverService.state.collectAsState().value
         Box(
             modifier = Modifier
                 .padding(App.Theme.insets)
@@ -66,23 +82,46 @@ internal fun ReceiverScreen() {
                         text = state.address,
                     )
                 }
-
                 else -> {
                     // noop
                 }
+            }
+            val text = when (state) {
+                is HttpService.State.Started -> "stop"
+                is HttpService.State.Stopped -> "start"
+                else -> ""
+            }
+            val enabled = when (state) {
+                is HttpService.State.Started -> true
+                is HttpService.State.Stopped -> true
+                else -> false
             }
             BasicText(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
                     .height(64.dp)
-                    .clickable {
-                        if (ReceiverService.state.value is HttpService.State.Started) {
-                            HttpService.startService<ReceiverService>(context, HttpService.Action.StopServer)
+                    .clickable(enabled = enabled) {
+                        when (state) {
+                            is HttpService.State.Started -> {
+                                HttpService.startService<ReceiverService>(
+                                    context,
+                                    HttpService.Action.StopServer,
+                                )
+                            }
+                            is HttpService.State.Stopped -> {
+                                HttpService.startService<ReceiverService>(
+                                    context,
+                                    HttpService.Action.StartServer,
+                                )
+                            }
+                            else -> {
+                                // noop
+                            }
                         }
                     }
                     .wrapContentSize(),
-                text = "stop",
+                text = text,
             )
         }
     }

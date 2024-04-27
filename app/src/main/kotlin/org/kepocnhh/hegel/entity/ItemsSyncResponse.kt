@@ -6,7 +6,6 @@ internal sealed interface ItemsSyncResponse {
     data object NotModified : ItemsSyncResponse
     data class NeedUpdate(
         val sessionId: UUID,
-        val info: Map<UUID, Info>,
-        val deleted: List<UUID>,
+        val storages: Map<UUID, StorageInfo>,
     ) : ItemsSyncResponse
 }

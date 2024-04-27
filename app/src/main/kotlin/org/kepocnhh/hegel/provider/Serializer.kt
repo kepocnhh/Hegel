@@ -16,5 +16,6 @@ internal interface Serializer {
     }
 
     val foo: ListTransformer<Described<Foo>>
+    val fooItem: Transformer<Foo>
     val remote: Remote
 }

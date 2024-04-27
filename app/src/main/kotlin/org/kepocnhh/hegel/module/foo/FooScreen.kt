@@ -17,23 +17,20 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import org.kepocnhh.hegel.App
-import org.kepocnhh.hegel.module.receiver.ReceiverService
-import org.kepocnhh.hegel.util.http.HttpService
+import org.kepocnhh.hegel.util.compose.BackHandler
 import java.util.Date
 import java.util.UUID
 
 @Composable
 private fun FooScreen(
     state: FooLogics.State,
+    items: FooLogics.Items,
     onDelete: (UUID) -> Unit,
     onAdd: () -> Unit,
     onUpdate: (UUID) -> Unit,
-    onTransmitter: () -> Unit,
-    onReceiver: () -> Unit,
 ) {
     Box(
         modifier = Modifier
@@ -43,7 +40,7 @@ private fun FooScreen(
         LazyColumn(
             contentPadding = App.Theme.insets,
         ) {
-            state.items.forEachIndexed { index, described ->
+            items.list.forEachIndexed { index, described ->
                 item(
                     key = described.id,
                 ) {
@@ -91,26 +88,6 @@ private fun FooScreen(
                     .align(Alignment.BottomCenter),
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                BasicText(
-                    modifier = Modifier
-                        .background(Color.Black)
-                        .padding(16.dp)
-                        .clickable(enabled = !state.loading) {
-                            onTransmitter()
-                        },
-                    text = "T -->",
-                    style = TextStyle(color = Color.White),
-                )
-                BasicText(
-                    modifier = Modifier
-                        .background(Color.Black)
-                        .padding(16.dp)
-                        .clickable(enabled = !state.loading) {
-                            onReceiver()
-                        },
-                    text = "<-- R",
-                    style = TextStyle(color = Color.White),
-                )
                 if (state.loading) {
                     BasicText(
                         text = "loading...",
@@ -133,30 +110,26 @@ private fun FooScreen(
 }
 
 @Composable
-internal fun FooScreen() {
+internal fun FooScreen(onBack: () -> Unit) {
+    BackHandler(block = onBack)
     val logics = App.logics<FooLogics>()
     val state = logics.state.collectAsState().value
+    val items = logics.items.collectAsState().value
     LaunchedEffect(Unit) {
-        if (state == null) {
+        if (items == null) {
             logics.requestItems()
         }
     }
-    if (state == null) return
-    val context = LocalContext.current
+    if (items == null) return
     FooScreen(
         state = state,
+        items = items,
         onDelete = logics::deleteItem,
         onAdd = {
             logics.addItem(text = "foo:" + System.currentTimeMillis() % 256 + ":text")
         },
         onUpdate = { id: UUID ->
             logics.updateItem(id = id, text = "foo:" + System.currentTimeMillis() % 256 + ":updated")
-        },
-        onTransmitter = {
-            logics.syncItems()
-        },
-        onReceiver = {
-            HttpService.startService<ReceiverService>(context, HttpService.Action.StartServer)
         },
     )
 }
