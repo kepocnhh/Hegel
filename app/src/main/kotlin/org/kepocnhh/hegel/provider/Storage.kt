@@ -14,4 +14,5 @@ internal interface Storage<T : Any> {
     fun update(id: UUID, item: T)
     fun merge(items: List<Described<T>>, deleted: Set<UUID>) // todo bytes?
     // todo getMergeInfo
+    // todo request List<Described<ByteArray>>>
 }

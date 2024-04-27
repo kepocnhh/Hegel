@@ -108,7 +108,7 @@ internal class App : Application() {
             hash = this.items.hash()
         }
 
-        private fun Iterable<Described<T>>.hash(): String {
+        private fun Iterable<Described<out Any>>.hash(): String {
             return sortedBy {
                 it.info.created
             }.joinToString(separator = "") {

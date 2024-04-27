@@ -14,6 +14,7 @@ import org.kepocnhh.hegel.entity.Session
 import org.kepocnhh.hegel.entity.StorageInfo
 import org.kepocnhh.hegel.entity.map
 import org.kepocnhh.hegel.provider.Storage
+import org.kepocnhh.hegel.provider.Transformer
 import org.kepocnhh.hegel.util.http.HttpRequest
 import org.kepocnhh.hegel.util.http.HttpResponse
 import org.kepocnhh.hegel.util.http.HttpService
@@ -31,6 +32,17 @@ internal class ReceiverService : HttpService(_state) {
             "POST" to ::onPostItemsSyncMerge,
         ),
     )
+
+    private fun <T : Any> Storage<T>.request(
+        download: Set<UUID>,
+        transformer: Transformer<T>,
+    ): List<Described<ByteArray>> {
+        return items.filter {
+            download.contains(it.id)
+        }.map {
+            it.map(transformer::encode)
+        }
+    }
 
     private fun onSyncMerge(request: ItemsSyncMergeRequest): HttpResponse {
         val oldSession = App.injection.locals.session
@@ -54,6 +66,7 @@ internal class ReceiverService : HttpService(_state) {
             )
         }
         for ((id, mergeInfo) in request.storages) {
+            logger.debug("requested: " + mergeInfo.download)
             logger.debug("receive: " + mergeInfo.items.map { it.id })
             when (id) {
                 Foo.STORAGE_ID -> {
@@ -67,30 +80,23 @@ internal class ReceiverService : HttpService(_state) {
                 else -> TODO()
             }
         }
-        val response = ItemsSyncMergeResponse(
-            storages = setOf(
-                App.injection.locals.foo,
-            ).associate { storage ->
-                val transformer = when (storage.id) {
-                    Foo.STORAGE_ID -> App.injection.serializer.fooItem
-                    else -> TODO()
-                }
-                val download = request.storages[storage.id]?.download.orEmpty()
-                val items = storage.items.filter {
-                    download.contains(it.id)
-                }.map {
-                    it.map(transformer::encode)
-                }
-                storage.id to items
-            },
-        )
+        val storages = request.storages.mapValues { (storageId, info) ->
+            when (storageId) {
+                Foo.STORAGE_ID -> App.injection.locals.foo.request(info.download, App.injection.serializer.fooItem)
+                Bar.STORAGE_ID -> App.injection.locals.bar.request(info.download, App.injection.serializer.barItem)
+                else -> TODO()
+            }
+        }
+        val response = ItemsSyncMergeResponse(storages = storages)
         App.injection.locals.session = null
         // todo
-        setOf(
+        val hashes = setOf(
             App.injection.locals.foo,
-        ).forEach { storage ->
-            logger.debug("hash[${storage.id}]: ${storage.hash}")
+            App.injection.locals.bar,
+        ).associate { storage ->
+            storage.id to storage.hash
         }
+        logger.debug("hashes: $hashes")
         // todo
         val body = App.injection.serializer.remote.mergeResponse.encode(response)
         return HttpResponse(
@@ -129,7 +135,10 @@ internal class ReceiverService : HttpService(_state) {
                 Bar.STORAGE_ID -> App.injection.locals.bar
                 else -> TODO()
             }
-            if (storage.hash == hash) continue
+            if (storage.hash == hash) {
+                logger.debug("storage[$id]: not modified")
+                continue
+            }
             storages[id] = StorageInfo(
                 meta = storage.items.associate { it.id to it.info },
                 deleted = storage.deleted,
@@ -156,6 +165,7 @@ internal class ReceiverService : HttpService(_state) {
             expires = System.currentTimeMillis().milliseconds + 1.minutes,
         )
         App.injection.locals.session = session
+        logger.debug("storages: ${storages.map { (storageId, info) -> storageId to info.meta.map { (id, i) -> id to i.hash } }}")
         val response = ItemsSyncResponse.NeedUpdate(
             sessionId = session.id,
             storages = storages,

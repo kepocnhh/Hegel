@@ -59,6 +59,15 @@ internal class TransmitterLogics(
                 }
             }
         }
+        // todo
+        val hashes = setOf(
+            injection.locals.foo,
+            injection.locals.bar,
+        ).associate { storage ->
+            storage.id to storage.hash
+        }
+        logger.debug("hashes: $hashes")
+        // todo
         _state.value = State(loading = false)
         _broadcast.emit(Broadcast.OnSync(Result.success(Unit)))
     }
@@ -99,6 +108,7 @@ internal class TransmitterLogics(
                 }
             }
         }
+        logger.debug("download[${storage.id}]: $download")
         return MergeInfo(
             download = download,
             items = items,
@@ -108,6 +118,7 @@ internal class TransmitterLogics(
 
     private suspend fun onNeedUpdate(response: ItemsSyncResponse.NeedUpdate) {
         logger.debug("need update...")
+        logger.debug("storages: ${response.storages.map { (storageId, info) -> storageId to info.meta.map { (id, i) -> id to i.hash } }}")
         val storages = mutableMapOf<UUID, MergeInfo>()
         withContext(injection.contexts.default) {
             for ((storageId, storageInfo) in response.storages) {
@@ -181,6 +192,7 @@ internal class TransmitterLogics(
                         injection.locals.bar,
                     ).associate { it.id to it.hash },
                 )
+                logger.debug("hashes: ${request.hashes}")
                 injection.remotes.itemsSync(request)
             }
         }
