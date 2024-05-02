@@ -69,6 +69,7 @@ internal class EncryptedFileStorage<T : Any>(
     }
 
     override fun outputStream(): OutputStream {
+        file().delete()
         return encrypted().openFileOutput()
     }
 

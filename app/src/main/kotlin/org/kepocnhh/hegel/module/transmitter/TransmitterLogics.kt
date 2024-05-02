@@ -90,6 +90,7 @@ internal class TransmitterLogics(
             ItemsSyncResponse.NotModified -> {
                 logger.debug("not modified")
                 _state.value = State(loading = false)
+                _broadcast.emit(Broadcast.OnSync(Result.success(Unit)))
                 return
             }
             is ItemsSyncResponse.NeedUpdate -> {
