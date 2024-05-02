@@ -3,29 +3,29 @@ package org.kepocnhh.hegel.provider
 import org.json.JSONArray
 import org.json.JSONObject
 import org.kepocnhh.hegel.entity.Bar
-import org.kepocnhh.hegel.entity.Described
 import org.kepocnhh.hegel.entity.Foo
-import org.kepocnhh.hegel.entity.Info
 import org.kepocnhh.hegel.entity.ItemsSyncMergeRequest
 import org.kepocnhh.hegel.entity.ItemsSyncMergeResponse
 import org.kepocnhh.hegel.entity.ItemsSyncRequest
 import org.kepocnhh.hegel.entity.ItemsSyncResponse
-import org.kepocnhh.hegel.entity.MergeInfo
-import org.kepocnhh.hegel.entity.StorageInfo
+import sp.kx.storages.Described
 import java.util.Base64
 import java.util.UUID
 import kotlin.time.Duration.Companion.milliseconds
+import sp.kx.storages.ItemInfo
+import sp.kx.storages.MergeInfo
+import sp.kx.storages.SyncInfo
 
 internal class JsonSerializer : Serializer {
-    private fun Info.toJSONObject(): JSONObject {
+    private fun ItemInfo.toJSONObject(): JSONObject {
         return JSONObject()
             .put("hash", hash)
             .put("created", created.inWholeMilliseconds)
             .put("updated", updated.inWholeMilliseconds)
     }
 
-    private fun JSONObject.toInfo(): Info {
-        return Info(
+    private fun JSONObject.toInfo(): ItemInfo {
+        return ItemInfo(
             created = getLong("created").milliseconds,
             updated = getLong("updated").milliseconds,
             hash = getString("hash"),
@@ -97,35 +97,6 @@ internal class JsonSerializer : Serializer {
         return list
     }
 
-    override val foo = object : ListTransformer<Described<Foo>> {
-        override fun encode(value: Described<Foo>): ByteArray {
-            return value.toJSONObject { it.toJSONObject() }.toString().toByteArray()
-        }
-
-        override val list = object : Transformer<List<Described<Foo>>> {
-            override fun encode(value: List<Described<Foo>>): ByteArray {
-                val array = JSONArray()
-                for (item in value) {
-                    array.put(item.toJSONObject { it.toJSONObject() })
-                }
-                return array.toString().toByteArray()
-            }
-
-            override fun decode(bytes: ByteArray): List<Described<Foo>> {
-                val list = mutableListOf<Described<Foo>>()
-                val array = JSONArray(String(bytes))
-                for (i in 0 until array.length()) {
-                    list += array.getJSONObject(i).toDescribed { it.toFoo() }
-                }
-                return list
-            }
-        }
-
-        override fun decode(bytes: ByteArray): Described<Foo> {
-            return JSONObject(String(bytes)).toDescribed { it.toFoo() }
-        }
-    }
-
     private fun <T : Any> Iterable<T>.strings(transform: (T) -> String): JSONArray {
         val array = JSONArray()
         for (it in this) {
@@ -144,11 +115,11 @@ internal class JsonSerializer : Serializer {
 
     private fun <K : Any, V: Any> Map<K, V>.toJSONObject(
         keys: (K) -> String,
-        values: (K, V) -> JSONObject,
+        values: (V) -> JSONObject,
     ): JSONObject {
         val obj = JSONObject()
         for ((key, value) in this) {
-            obj.put(keys(key), values(key, value))
+            obj.put(keys(key), values(value))
         }
         return obj
     }
@@ -228,14 +199,14 @@ internal class JsonSerializer : Serializer {
         return obj
     }
 
-    private fun StorageInfo.toJSONObject(): JSONObject {
+    private fun SyncInfo.toJSONObject(): JSONObject {
         return JSONObject()
             .put("deleted", deleted.strings { it.toString() })
-            .put("meta", meta.toJSONObject(keys = UUID::toString, values = { _, it -> it.toJSONObject() }))
+            .put("meta", meta.toJSONObject(keys = UUID::toString, values = { it.toJSONObject() }))
     }
 
-    private fun JSONObject.toStorageInfo(): StorageInfo {
-        return StorageInfo(
+    private fun JSONObject.toStorageInfo(): SyncInfo {
+        return SyncInfo(
             deleted = getJSONArray("deleted").strings(UUID::fromString).toSet(),
             meta = getJSONObject("meta").toMap(keys = UUID::fromString, values = { it.toInfo() }),
         )
@@ -277,7 +248,7 @@ internal class JsonSerializer : Serializer {
             override fun encode(value: ItemsSyncResponse.NeedUpdate): ByteArray {
                 return JSONObject()
                     .put("sessionId", value.sessionId.toString())
-                    .put("storages", value.storages.toJSONObject(keys = UUID::toString, values = { _, it -> it.toJSONObject() }))
+                    .put("storages", value.storages.toJSONObject(keys = UUID::toString, values = { it.toJSONObject() }))
                     .toString()
                     .toByteArray()
             }
@@ -295,7 +266,7 @@ internal class JsonSerializer : Serializer {
             override fun encode(value: ItemsSyncMergeRequest): ByteArray {
                 val storages = value.storages.toJSONObject(
                     keys = UUID::toString,
-                    values = { _, it -> it.toJSONObject() },
+                    values = { it.toJSONObject() },
                 )
                 return JSONObject()
                     .put("sessionId", value.sessionId.toString())
@@ -344,33 +315,13 @@ internal class JsonSerializer : Serializer {
         }
     }
 
-    override val fooItem = object : Transformer<Foo> {
+    override val foo = object : Transformer<Foo> {
         override fun encode(value: Foo): ByteArray {
             return value.toJSONObject().toString().toByteArray()
         }
 
         override fun decode(bytes: ByteArray): Foo {
             return JSONObject(String(bytes)).toFoo()
-        }
-    }
-
-    override val bar = object : ListTransformer<Described<Bar>> {
-        override fun encode(value: Described<Bar>): ByteArray {
-            return value.toJSONObject { it.toJSONObject() }.toString().toByteArray()
-        }
-
-        override val list = object : Transformer<List<Described<Bar>>> {
-            override fun encode(value: List<Described<Bar>>): ByteArray {
-                return value.objects { it.toJSONObject { bar -> bar.toJSONObject() } }.toString().toByteArray()
-            }
-
-            override fun decode(bytes: ByteArray): List<Described<Bar>> {
-                return JSONArray(String(bytes)).objects { it.toDescribed { obj -> obj.toBar() } }
-            }
-        }
-
-        override fun decode(bytes: ByteArray): Described<Bar> {
-            return JSONObject(String(bytes)).toDescribed { it.toBar() }
         }
     }
 
@@ -385,7 +336,7 @@ internal class JsonSerializer : Serializer {
         )
     }
 
-    override val barItem = object : Transformer<Bar> {
+    override val bar = object : Transformer<Bar> {
         override fun encode(value: Bar): ByteArray {
             return value.toJSONObject().toString().toByteArray()
         }

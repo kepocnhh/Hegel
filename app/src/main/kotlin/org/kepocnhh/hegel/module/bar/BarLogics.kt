@@ -4,10 +4,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import org.kepocnhh.hegel.entity.Bar
-import org.kepocnhh.hegel.entity.Described
 import org.kepocnhh.hegel.module.app.Injection
-import org.kepocnhh.hegel.provider.Storage
 import sp.kx.logics.Logics
+import sp.kx.storages.Described
+import sp.kx.storages.MutableStorage
 import java.util.UUID
 
 internal class BarLogics(
@@ -27,8 +27,8 @@ internal class BarLogics(
     private val _items = MutableStateFlow<Items?>(null)
     val items = _items.asStateFlow()
 
-    private fun getStorage(): Storage<Bar> {
-        return injection.locals.bar
+    private fun getStorage(): MutableStorage<Bar> {
+        return injection.storages.bar
     }
 
     fun requestItems() = launch {
