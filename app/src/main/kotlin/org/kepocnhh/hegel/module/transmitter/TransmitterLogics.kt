@@ -5,6 +5,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
+import org.kepocnhh.hegel.entity.Bar
+import org.kepocnhh.hegel.entity.Foo
 import org.kepocnhh.hegel.entity.ItemsSyncMergeRequest
 import org.kepocnhh.hegel.entity.ItemsSyncMergeResponse
 import org.kepocnhh.hegel.entity.ItemsSyncRequest
@@ -31,23 +33,19 @@ internal class TransmitterLogics(
     private val _broadcast = MutableSharedFlow<Broadcast>()
     val broadcast = _broadcast.asSharedFlow()
 
-    private suspend fun onSyncMerge(response: ItemsSyncMergeResponse, deleted: Map<UUID, Set<UUID>>) {
+    private suspend fun onSyncMerge(response: ItemsSyncMergeResponse) {
         logger.debug("sync merge...")
         withContext(injection.contexts.default) {
-            for ((storageId, encoded) in response.storages) {
-                val storage = setOf(
-                    injection.storages.foo,
-                    injection.storages.bar,
-                ).firstOrNull { it.id == storageId } ?: TODO()
-                storage.merge(encoded, deleted[storageId].orEmpty())
+            for ((storageId, info) in response.storages) {
+                val storage = injection.storages.require(id = storageId)
+                storage.merge(info)
             }
         }
         _state.value = State(loading = false)
         _broadcast.emit(Broadcast.OnSync(Result.success(Unit)))
     }
 
-    private suspend fun onSyncMerge(result: Result<ItemsSyncMergeResponse>, deleted: Map<UUID, Set<UUID>>) {
-        // todo deleted
+    private suspend fun onSyncMerge(result: Result<ItemsSyncMergeResponse>) {
         if (result.isFailure) {
             val error = result.exceptionOrNull() ?: TODO()
             logger.warning("sync merge: $error")
@@ -55,7 +53,7 @@ internal class TransmitterLogics(
             _broadcast.emit(Broadcast.OnSync(Result.failure(error)))
             return
         }
-        onSyncMerge(result.getOrThrow(), deleted = deleted)
+        onSyncMerge(result.getOrThrow())
     }
 
     private suspend fun onNeedUpdate(response: ItemsSyncResponse.NeedUpdate) {
@@ -64,10 +62,7 @@ internal class TransmitterLogics(
         val storages = mutableMapOf<UUID, MergeInfo>()
         withContext(injection.contexts.default) {
             for ((storageId, syncInfo) in response.storages) {
-                val mergeInfo = setOf(
-                    injection.storages.foo,
-                    injection.storages.bar,
-                ).firstOrNull { it.id == storageId }?.getMergeInfo(syncInfo) ?: TODO()
+                val mergeInfo = injection.storages.require(id = storageId).getMergeInfo(syncInfo)
                 storages[storageId] = mergeInfo
             }
         }
@@ -83,7 +78,7 @@ internal class TransmitterLogics(
                 injection.remotes.itemsSyncMerge(request)
             }
         }
-        onSyncMerge(result, deleted = response.storages.mapValues { (_, value) -> value.deleted })
+        onSyncMerge(result)
     }
 
     private suspend fun onResponse(response: ItemsSyncResponse) {
@@ -118,8 +113,8 @@ internal class TransmitterLogics(
             runCatching {
                 val request = ItemsSyncRequest(
                     hashes = setOf(
-                        injection.storages.foo,
-                        injection.storages.bar,
+                        injection.storages.require<Foo>(), // todo
+                        injection.storages.require<Bar>(), // todo
                     ).associate { it.id to it.hash },
                 )
                 logger.debug("hashes: ${request.hashes}")

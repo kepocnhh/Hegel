@@ -28,7 +28,7 @@ internal class BarLogics(
     val items = _items.asStateFlow()
 
     private fun getStorage(): MutableStorage<Bar> {
-        return injection.storages.bar
+        return injection.storages.require()
     }
 
     fun requestItems() = launch {

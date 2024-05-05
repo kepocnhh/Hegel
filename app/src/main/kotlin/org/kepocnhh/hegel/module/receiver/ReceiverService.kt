@@ -10,6 +10,7 @@ import org.kepocnhh.hegel.entity.Session
 import org.kepocnhh.hegel.util.http.HttpRequest
 import org.kepocnhh.hegel.util.http.HttpResponse
 import org.kepocnhh.hegel.util.http.HttpService
+import sp.kx.storages.CommitInfo
 import sp.kx.storages.Described
 import sp.kx.storages.SyncInfo
 import java.util.UUID
@@ -48,14 +49,11 @@ internal class ReceiverService : HttpService(_state) {
                 message = "TODO", // todo
             )
         }
-        val storages = mutableMapOf<UUID, List<Described<ByteArray>>>()
+        val storages = mutableMapOf<UUID, CommitInfo>()
         for ((storageId, mergeInfo) in request.storages) {
             logger.debug("requested: " + mergeInfo.download)
             logger.debug("receive: " + mergeInfo.items.map { it.id })
-            val storage = setOf(
-                App.injection.storages.foo,
-                App.injection.storages.bar,
-            ).firstOrNull { it.id == storageId } ?: TODO()
+            val storage = App.injection.storages.require(id = storageId)
             storages[storageId] = storage.merge(mergeInfo)
         }
         val response = ItemsSyncMergeResponse(storages = storages)
@@ -92,10 +90,7 @@ internal class ReceiverService : HttpService(_state) {
         }
         val storages = mutableMapOf<UUID, SyncInfo>()
         for ((storageId, storageHash) in hashes) {
-            val storage = setOf(
-                App.injection.storages.foo,
-                App.injection.storages.bar,
-            ).firstOrNull { it.id == storageId } ?: TODO()
+            val storage = App.injection.storages.require(id = storageId)
             if (storage.hash == storageHash) {
                 logger.debug("storage[$storageId]: not modified")
                 continue

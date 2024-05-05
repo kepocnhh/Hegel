@@ -28,7 +28,7 @@ internal class FooLogics(
     val items = _items.asStateFlow()
 
     private fun getStorage(): MutableStorage<Foo> {
-        return injection.storages.foo
+        return injection.storages.require()
     }
 
     fun requestItems() = launch {

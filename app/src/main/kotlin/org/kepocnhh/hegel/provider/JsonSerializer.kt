@@ -8,6 +8,7 @@ import org.kepocnhh.hegel.entity.ItemsSyncMergeRequest
 import org.kepocnhh.hegel.entity.ItemsSyncMergeResponse
 import org.kepocnhh.hegel.entity.ItemsSyncRequest
 import org.kepocnhh.hegel.entity.ItemsSyncResponse
+import sp.kx.storages.CommitInfo
 import sp.kx.storages.Described
 import java.util.Base64
 import java.util.UUID
@@ -24,7 +25,7 @@ internal class JsonSerializer : Serializer {
             .put("updated", updated.inWholeMilliseconds)
     }
 
-    private fun JSONObject.toInfo(): ItemInfo {
+    private fun JSONObject.toItemInfo(): ItemInfo {
         return ItemInfo(
             created = getLong("created").milliseconds,
             updated = getLong("updated").milliseconds,
@@ -68,7 +69,7 @@ internal class JsonSerializer : Serializer {
     private fun <T : Any> JSONObject.toDescribed(transform: (JSONObject) -> T): Described<T> {
         return Described(
             id = UUID.fromString(getString("id")),
-            info = getJSONObject("info").toInfo(),
+            info = getJSONObject("info").toItemInfo(),
             item = transform(getJSONObject("item")),
         )
     }
@@ -76,7 +77,7 @@ internal class JsonSerializer : Serializer {
     private fun JSONObject.toDescribed(): Described<ByteArray> {
         return Described(
             id = UUID.fromString(getString("id")),
-            info = getJSONObject("info").toInfo(),
+            info = getJSONObject("info").toItemInfo(),
             item = getString("item").base64(),
         )
     }
@@ -208,7 +209,7 @@ internal class JsonSerializer : Serializer {
     private fun JSONObject.toStorageInfo(): SyncInfo {
         return SyncInfo(
             deleted = getJSONArray("deleted").strings(UUID::fromString).toSet(),
-            meta = getJSONObject("meta").toMap(keys = UUID::fromString, values = { it.toInfo() }),
+            meta = getJSONObject("meta").toMap(keys = UUID::fromString, values = { it.toItemInfo() }),
         )
     }
 
@@ -223,6 +224,21 @@ internal class JsonSerializer : Serializer {
         return MergeInfo(
             deleted = getJSONArray("deleted").strings(UUID::fromString).toSet(),
             download = getJSONArray("download").strings(UUID::fromString).toSet(),
+            items = getJSONArray("items").objects { it.toDescribed() },
+        )
+    }
+
+    private fun CommitInfo.toJSONObject(): JSONObject {
+        return JSONObject()
+            .put("hash", hash)
+            .put("deleted", deleted.strings { it.toString() })
+            .put("items", items.objects { it.toJSONObject() })
+    }
+
+    private fun JSONObject.toCommitInfo(): CommitInfo {
+        return CommitInfo(
+            hash = getString("hash"),
+            deleted = getJSONArray("deleted").strings(UUID::fromString).toSet(),
             items = getJSONArray("items").objects { it.toDescribed() },
         )
     }
@@ -292,9 +308,9 @@ internal class JsonSerializer : Serializer {
 
         override val mergeResponse: Transformer<ItemsSyncMergeResponse> = object : Transformer<ItemsSyncMergeResponse> {
             override fun encode(value: ItemsSyncMergeResponse): ByteArray {
-                val storages = value.storages.arrays(
+                val storages = value.storages.toJSONObject(
                     keys = UUID::toString,
-                    values = { list -> list.objects { it.toJSONObject() } },
+                    values = { it.toJSONObject() },
                 )
                 return JSONObject()
                     .put("storages", storages)
@@ -304,9 +320,9 @@ internal class JsonSerializer : Serializer {
 
             override fun decode(bytes: ByteArray): ItemsSyncMergeResponse {
                 val obj = JSONObject(String(bytes))
-                val storages = obj.getJSONObject("storages").arrays(
+                val storages = obj.getJSONObject("storages").toMap(
                     keys = UUID::fromString,
-                    values = { array -> array.objects { it.toDescribed() } },
+                    values = { it.toCommitInfo() },
                 )
                 return ItemsSyncMergeResponse(
                     storages = storages,

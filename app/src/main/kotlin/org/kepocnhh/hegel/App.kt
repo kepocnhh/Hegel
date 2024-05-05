@@ -11,8 +11,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalView
 import kotlinx.coroutines.Dispatchers
-import org.kepocnhh.hegel.entity.Bar
-import org.kepocnhh.hegel.entity.Foo
 import org.kepocnhh.hegel.entity.Session
 import org.kepocnhh.hegel.module.app.Injection
 import org.kepocnhh.hegel.provider.Contexts
@@ -22,7 +20,6 @@ import org.kepocnhh.hegel.provider.FinalRemotes
 import org.kepocnhh.hegel.provider.JsonSerializer
 import org.kepocnhh.hegel.provider.Locals
 import org.kepocnhh.hegel.provider.Serializer
-import org.kepocnhh.hegel.provider.Storages
 import org.kepocnhh.hegel.util.compose.LocalOnBackPressedDispatcher
 import org.kepocnhh.hegel.util.compose.toPaddings
 import sp.kx.logics.Logics
@@ -31,8 +28,8 @@ import sp.kx.logics.LogicsProvider
 import sp.kx.logics.contains
 import sp.kx.logics.get
 import sp.kx.logics.remove
+import sp.kx.storages.SyncStorages
 import java.util.UUID
-import kotlin.time.Duration.Companion.milliseconds
 
 internal class App : Application() {
     object Theme {
@@ -70,18 +67,22 @@ internal class App : Application() {
             ),
             loggers = FinalLoggers,
             locals = MockLocals(), // todo
-            storages = Storages(
-                foo = EncryptedFileStorage(
-                    id = UUID.fromString("84e44670-d301-471b-a7ac-dfd8b1e55554"),
-                    context = this,
-                    transformer = serializer.foo,
-                ),
-                bar = EncryptedFileStorage(
-                    id = UUID.fromString("6c7a0b49-89e9-45ee-945c-0faad06a3df7"),
-                    context = this,
-                    transformer = serializer.bar,
-                ),
-            ),
+            storages = SyncStorages.Builder()
+                .add(
+                    EncryptedFileStorage(
+                        id = UUID.fromString("84e44670-d301-471b-a7ac-dfd8b1e55554"),
+                        context = this,
+                        transformer = serializer.foo,
+                    ),
+                )
+                .add(
+                    EncryptedFileStorage(
+                        id = UUID.fromString("6c7a0b49-89e9-45ee-945c-0faad06a3df7"),
+                        context = this,
+                        transformer = serializer.bar,
+                    ),
+                )
+                .build(),
             remotes = FinalRemotes(serializer = serializer),
             serializer = serializer,
         )
