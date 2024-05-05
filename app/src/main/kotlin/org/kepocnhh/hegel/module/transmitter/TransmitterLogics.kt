@@ -47,6 +47,7 @@ internal class TransmitterLogics(
     }
 
     private suspend fun onSyncMerge(result: Result<ItemsSyncMergeResponse>, deleted: Map<UUID, Set<UUID>>) {
+        // todo deleted
         if (result.isFailure) {
             val error = result.exceptionOrNull() ?: TODO()
             logger.warning("sync merge: $error")
