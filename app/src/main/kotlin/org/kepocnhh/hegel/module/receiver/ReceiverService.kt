@@ -95,10 +95,7 @@ internal class ReceiverService : HttpService(_state) {
                 logger.debug("storage[$storageId]: not modified")
                 continue
             }
-            storages[storageId] = SyncInfo(
-                meta = storage.items.associate { it.id to it.info },
-                deleted = storage.deleted,
-            )
+            storages[storageId] = storage.getSyncInfo()
         }
         if (storages.isEmpty()) {
             logger.debug("not modified")
