@@ -110,6 +110,6 @@ dependencies {
     implementation("androidx.compose.foundation:foundation:${Version.Android.compose}")
     implementation("androidx.security:security-crypto:1.0.0")
     implementation("com.github.kepocnhh:Logics:0.1.3-SNAPSHOT")
-    implementation("com.github.kepocnhh:Storages:0.4.0u-SNAPSHOT")
+    implementation("com.github.kepocnhh:Storages:0.4.1u-SNAPSHOT")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 }
