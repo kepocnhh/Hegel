@@ -1,5 +1,8 @@
 import com.android.build.api.variant.ComponentIdentity
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import sp.gx.core.camelCase
+import sp.gx.core.create
+import sp.gx.core.getByName
 import sp.gx.core.kebabCase
 
 repositories {
@@ -43,8 +46,8 @@ android {
         applicationId = namespace
         minSdk = Version.Android.minSdk
         targetSdk = Version.Android.targetSdk
-        versionCode = 7
-        versionName = "0.2.1"
+        versionCode = 8
+        versionName = "0.3.0"
         manifestPlaceholders["appName"] = "@string/app_name"
     }
 
@@ -71,13 +74,13 @@ androidComponents.onVariants { variant ->
     check(output is com.android.build.api.variant.impl.VariantOutputImpl)
     output.outputFileName = "${kebabCase(rootProject.name, variant.getVersion())}.apk"
     afterEvaluate {
-        tasks.getByName<JavaCompile>(camelCase("compile", variant.name, "JavaWithJavac")) {
+        tasks.getByName<JavaCompile>("compile", variant.name, "JavaWithJavac") {
             targetCompatibility = Version.jvmTarget
         }
-        tasks.getByName<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>(camelCase("compile", variant.name, "Kotlin")) {
+        tasks.getByName<KotlinCompile>("compile", variant.name, "Kotlin") {
             kotlinOptions.jvmTarget = Version.jvmTarget
         }
-        val checkManifestTask = task(camelCase("checkManifest", variant.name)) {
+        val checkManifestTask = tasks.create("checkManifest", variant.name) {
             dependsOn(camelCase("compile", variant.name, "Sources"))
             doLast {
                 val file = "intermediates/merged_manifest/${variant.name}/AndroidManifest.xml"
@@ -108,6 +111,8 @@ androidComponents.onVariants { variant ->
 dependencies {
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("androidx.compose.foundation:foundation:${Version.Android.compose}")
+    implementation("androidx.security:security-crypto:1.0.0")
     implementation("com.github.kepocnhh:Logics:0.1.3-SNAPSHOT")
+    implementation("com.github.kepocnhh:Storages:0.4.2u-SNAPSHOT")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 }

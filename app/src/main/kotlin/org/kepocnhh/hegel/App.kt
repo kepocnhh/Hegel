@@ -11,20 +11,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalView
 import kotlinx.coroutines.Dispatchers
-import org.kepocnhh.hegel.entity.Bar
-import org.kepocnhh.hegel.entity.Described
-import org.kepocnhh.hegel.entity.Foo
-import org.kepocnhh.hegel.entity.Info
 import org.kepocnhh.hegel.entity.Session
-import org.kepocnhh.hegel.entity.map
 import org.kepocnhh.hegel.module.app.Injection
 import org.kepocnhh.hegel.provider.Contexts
+import org.kepocnhh.hegel.provider.EncryptedFileStorage
 import org.kepocnhh.hegel.provider.FinalLoggers
 import org.kepocnhh.hegel.provider.FinalRemotes
 import org.kepocnhh.hegel.provider.JsonSerializer
 import org.kepocnhh.hegel.provider.Locals
 import org.kepocnhh.hegel.provider.Serializer
-import org.kepocnhh.hegel.provider.Storage
 import org.kepocnhh.hegel.util.compose.LocalOnBackPressedDispatcher
 import org.kepocnhh.hegel.util.compose.toPaddings
 import sp.kx.logics.Logics
@@ -33,8 +28,8 @@ import sp.kx.logics.LogicsProvider
 import sp.kx.logics.contains
 import sp.kx.logics.get
 import sp.kx.logics.remove
+import sp.kx.storages.SyncStorages
 import java.util.UUID
-import kotlin.time.Duration.Companion.milliseconds
 
 internal class App : Application() {
     object Theme {
@@ -58,69 +53,7 @@ internal class App : Application() {
         }
     }
 
-    private class MockStorage<T : Any>(override val id: UUID) : Storage<T> {
-        override val items = mutableListOf<Described<T>>()
-        override var hash: String = "0"
-        override val deleted = mutableSetOf<UUID>()
-
-        override fun delete(id: UUID) {
-            val index = items.indexOfFirst { it.id == id }
-            if (index < 0) return
-            items.removeAt(index)
-            deleted += id
-            hash = items.hash()
-        }
-
-        override fun add(item: T) {
-            val created = System.currentTimeMillis().milliseconds
-            items += Described(
-                id = UUID.randomUUID(), // todo
-                info = Info(
-                    created = created,
-                    updated = created,
-                    hash = item.hashCode().toString(), // todo
-                ),
-                item = item,
-            )
-            hash = items.hash()
-        }
-
-        override fun update(id: UUID, item: T) {
-            val index = items.indexOfFirst { it.id == id }
-            if (index < 0) TODO()
-            val oldItem = items[index]
-            items.removeAt(index)
-            items += oldItem.copy(
-                info = oldItem.info.copy(
-                    updated = System.currentTimeMillis().milliseconds,
-                    hash = item.hashCode().toString(), // todo
-                ),
-                item = item,
-            )
-            hash = items.hash()
-        }
-
-        override fun merge(items: List<Described<T>>, deleted: Set<UUID>) {
-            this.items.removeIf { item -> deleted.contains(item.id) }
-            this.items.removeIf { item -> items.any { it.id == item.id } }
-            this.items.addAll(items)
-            this.deleted += deleted
-            hash = this.items.hash()
-        }
-
-        private fun Iterable<Described<out Any>>.hash(): String {
-            return sortedBy {
-                it.info.created
-            }.joinToString(separator = "") {
-                it.info.hash
-            }.hashCode().toString()
-        }
-    }
-
     private class MockLocals : Locals {
-        override val bar: Storage<Bar> = MockStorage(id = Bar.STORAGE_ID)
-        override val foo: Storage<Foo> = MockStorage(id = Foo.STORAGE_ID)
-
         override var session: Session? = null
     }
 
@@ -133,7 +66,23 @@ internal class App : Application() {
                 default = Dispatchers.Default,
             ),
             loggers = FinalLoggers,
-            locals = MockLocals(),
+            locals = MockLocals(), // todo
+            storages = SyncStorages.Builder()
+                .add(
+                    EncryptedFileStorage(
+                        id = UUID.fromString("84e44670-d301-471b-a7ac-dfd8b1e55554"),
+                        context = this,
+                        transformer = serializer.foo,
+                    ),
+                )
+                .add(
+                    EncryptedFileStorage(
+                        id = UUID.fromString("6c7a0b49-89e9-45ee-945c-0faad06a3df7"),
+                        context = this,
+                        transformer = serializer.bar,
+                    ),
+                )
+                .build(),
             remotes = FinalRemotes(serializer = serializer),
             serializer = serializer,
         )

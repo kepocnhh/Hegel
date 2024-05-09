@@ -41,7 +41,7 @@ internal class FinalRemotes(
 
     override fun itemsSyncMerge(request: ItemsSyncMergeRequest): ItemsSyncMergeResponse {
         val request = Request.Builder()
-            .url("$URL/v1/items/sync/merge") // todo
+            .url("$URL/v1/items/merge") // todo
             .header("Content-Type", "application/json")
             .post(serializer.remote.syncMerge.encode(request).toRequestBody())
             .build()
