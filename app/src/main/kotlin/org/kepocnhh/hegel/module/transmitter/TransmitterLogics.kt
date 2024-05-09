@@ -5,8 +5,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
-import org.kepocnhh.hegel.entity.Bar
-import org.kepocnhh.hegel.entity.Foo
 import org.kepocnhh.hegel.entity.ItemsSyncMergeRequest
 import org.kepocnhh.hegel.entity.ItemsSyncMergeResponse
 import org.kepocnhh.hegel.entity.ItemsSyncRequest
@@ -36,10 +34,7 @@ internal class TransmitterLogics(
     private suspend fun onSyncMerge(response: ItemsSyncMergeResponse) {
         logger.debug("sync merge...")
         withContext(injection.contexts.default) {
-            for ((storageId, info) in response.storages) {
-                val storage = injection.storages.require(id = storageId)
-                storage.merge(info)
-            }
+            injection.storages.commit(infos = response.commits)
         }
         _state.value = State(loading = false)
         _broadcast.emit(Broadcast.OnSync(Result.success(Unit)))
@@ -58,23 +53,19 @@ internal class TransmitterLogics(
 
     private suspend fun onNeedUpdate(response: ItemsSyncResponse.NeedUpdate) {
         logger.debug("need update...")
-        logger.debug("storages: ${response.storages.map { (storageId, info) -> storageId to info.meta.map { (id, i) -> id to i.hash } }}")
-        val storages = mutableMapOf<UUID, MergeInfo>()
-        withContext(injection.contexts.default) {
-            for ((storageId, syncInfo) in response.storages) {
-                val mergeInfo = injection.storages.require(id = storageId).getMergeInfo(syncInfo)
-                storages[storageId] = mergeInfo
-            }
+        logger.debug("syncs: ${response.syncs.map { (storageId, info) -> storageId to info.infos.map { (id, i) -> id to i.hash } }}") // todo
+        val merges = withContext(injection.contexts.default) {
+            injection.storages.getMergeInfo(infos = response.syncs)
         }
         val result = withContext(injection.contexts.default) {
             runCatching {
                 val request = ItemsSyncMergeRequest(
                     sessionId = response.sessionId,
-                    storages = storages,
+                    merges = merges,
                 )
-                storages.forEach { (storageId, mergeInfo) ->
+                merges.forEach { (storageId, mergeInfo) ->
                     logger.debug("upload[$storageId]: " + mergeInfo.items.map { it.id }) // todo
-                }
+                } // todo
                 injection.remotes.itemsSyncMerge(request)
             }
         }
@@ -111,12 +102,7 @@ internal class TransmitterLogics(
         _state.value = State(loading = true)
         val result = withContext(injection.contexts.default) {
             runCatching {
-                val request = ItemsSyncRequest(
-                    hashes = setOf(
-                        injection.storages.require<Foo>(), // todo
-                        injection.storages.require<Bar>(), // todo
-                    ).associate { it.id to it.hash },
-                )
+                val request = ItemsSyncRequest(hashes = injection.storages.hashes())
                 logger.debug("hashes: ${request.hashes}")
                 injection.remotes.itemsSync(request)
             }

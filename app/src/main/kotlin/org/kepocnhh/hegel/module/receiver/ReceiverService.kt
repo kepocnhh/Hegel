@@ -23,6 +23,7 @@ internal class ReceiverService : HttpService(_state) {
         "/v1/items/sync" to mapOf(
             "POST" to ::onPostItemsSync,
         ),
+        // todo /v1/items/sync
         "/v1/items/sync/merge" to mapOf(
             "POST" to ::onPostItemsSyncMerge,
         ),
@@ -49,14 +50,8 @@ internal class ReceiverService : HttpService(_state) {
                 message = "TODO", // todo
             )
         }
-        val storages = mutableMapOf<UUID, CommitInfo>()
-        for ((storageId, mergeInfo) in request.storages) {
-            logger.debug("requested: " + mergeInfo.download)
-            logger.debug("receive: " + mergeInfo.items.map { it.id })
-            val storage = App.injection.storages.require(id = storageId)
-            storages[storageId] = storage.merge(mergeInfo)
-        }
-        val response = ItemsSyncMergeResponse(storages = storages)
+        val commits = App.injection.storages.merge(infos = request.merges)
+        val response = ItemsSyncMergeResponse(commits = commits)
         App.injection.locals.session = null
         val body = App.injection.serializer.remote.mergeResponse.encode(response)
         return HttpResponse(
@@ -88,16 +83,8 @@ internal class ReceiverService : HttpService(_state) {
                 App.injection.locals.session = null
             }
         }
-        val storages = mutableMapOf<UUID, SyncInfo>()
-        for ((storageId, storageHash) in hashes) {
-            val storage = App.injection.storages.require(id = storageId)
-            if (storage.hash == storageHash) {
-                logger.debug("storage[$storageId]: not modified")
-                continue
-            }
-            storages[storageId] = storage.getSyncInfo()
-        }
-        if (storages.isEmpty()) {
+        val syncs = App.injection.storages.getSyncInfo(hashes)
+        if (syncs.isEmpty()) {
             logger.debug("not modified")
             return HttpResponse(
                 code = 304,
@@ -109,10 +96,10 @@ internal class ReceiverService : HttpService(_state) {
             expires = System.currentTimeMillis().milliseconds + 1.minutes,
         )
         App.injection.locals.session = session
-        logger.debug("storages: ${storages.map { (storageId, info) -> storageId to info.meta.map { (id, i) -> id to i.hash } }}")
+        logger.debug("syncs: ${syncs.map { (storageId, info) -> storageId to info.infos.map { (id, i) -> id to i.hash } }}") // todo
         val response = ItemsSyncResponse.NeedUpdate(
             sessionId = session.id,
-            storages = storages,
+            syncs = syncs,
         )
         val body = App.injection.serializer.remote.needUpdate.encode(response)
         return HttpResponse(

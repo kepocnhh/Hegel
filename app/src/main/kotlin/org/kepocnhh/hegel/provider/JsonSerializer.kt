@@ -203,13 +203,13 @@ internal class JsonSerializer : Serializer {
     private fun SyncInfo.toJSONObject(): JSONObject {
         return JSONObject()
             .put("deleted", deleted.strings { it.toString() })
-            .put("meta", meta.toJSONObject(keys = UUID::toString, values = { it.toJSONObject() }))
+            .put("infos", infos.toJSONObject(keys = UUID::toString, values = { it.toJSONObject() }))
     }
 
     private fun JSONObject.toStorageInfo(): SyncInfo {
         return SyncInfo(
             deleted = getJSONArray("deleted").strings(UUID::fromString).toSet(),
-            meta = getJSONObject("meta").toMap(keys = UUID::fromString, values = { it.toItemInfo() }),
+            infos = getJSONObject("infos").toMap(keys = UUID::fromString, values = { it.toItemInfo() }),
         )
     }
 
@@ -264,7 +264,7 @@ internal class JsonSerializer : Serializer {
             override fun encode(value: ItemsSyncResponse.NeedUpdate): ByteArray {
                 return JSONObject()
                     .put("sessionId", value.sessionId.toString())
-                    .put("storages", value.storages.toJSONObject(keys = UUID::toString, values = { it.toJSONObject() }))
+                    .put("syncs", value.syncs.toJSONObject(keys = UUID::toString, values = { it.toJSONObject() }))
                     .toString()
                     .toByteArray()
             }
@@ -273,59 +273,59 @@ internal class JsonSerializer : Serializer {
                 val obj = JSONObject(String(bytes))
                 return ItemsSyncResponse.NeedUpdate(
                     sessionId = UUID.fromString(obj.getString("sessionId")),
-                    storages = obj.getJSONObject("storages").toMap(keys = UUID::fromString, values = { it.toStorageInfo() }),
+                    syncs = obj.getJSONObject("syncs").toMap(keys = UUID::fromString, values = { it.toStorageInfo() }),
                 )
             }
         }
 
         override val syncMerge: Transformer<ItemsSyncMergeRequest> = object : Transformer<ItemsSyncMergeRequest> {
             override fun encode(value: ItemsSyncMergeRequest): ByteArray {
-                val storages = value.storages.toJSONObject(
+                val merges = value.merges.toJSONObject(
                     keys = UUID::toString,
                     values = { it.toJSONObject() },
                 )
                 return JSONObject()
                     .put("sessionId", value.sessionId.toString())
-                    .put("storages", storages)
+                    .put("merges", merges)
                     .toString()
                     .toByteArray()
             }
 
             override fun decode(bytes: ByteArray): ItemsSyncMergeRequest {
                 val obj = JSONObject(String(bytes))
-                val storages = obj
-                    .getJSONObject("storages")
+                val merges = obj
+                    .getJSONObject("merges")
                     .toMap(
                         keys = UUID::fromString,
                         values = { it.toMergeInfo() },
                     )
                 return ItemsSyncMergeRequest(
                     sessionId = UUID.fromString(obj.getString("sessionId")),
-                    storages = storages,
+                    merges = merges,
                 )
             }
         }
 
         override val mergeResponse: Transformer<ItemsSyncMergeResponse> = object : Transformer<ItemsSyncMergeResponse> {
             override fun encode(value: ItemsSyncMergeResponse): ByteArray {
-                val storages = value.storages.toJSONObject(
+                val commits = value.commits.toJSONObject(
                     keys = UUID::toString,
                     values = { it.toJSONObject() },
                 )
                 return JSONObject()
-                    .put("storages", storages)
+                    .put("commits", commits)
                     .toString()
                     .toByteArray()
             }
 
             override fun decode(bytes: ByteArray): ItemsSyncMergeResponse {
                 val obj = JSONObject(String(bytes))
-                val storages = obj.getJSONObject("storages").toMap(
+                val commits = obj.getJSONObject("commits").toMap(
                     keys = UUID::fromString,
                     values = { it.toCommitInfo() },
                 )
                 return ItemsSyncMergeResponse(
-                    storages = storages,
+                    commits = commits,
                 )
             }
         }
