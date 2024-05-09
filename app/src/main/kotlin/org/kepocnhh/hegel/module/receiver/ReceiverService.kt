@@ -23,8 +23,7 @@ internal class ReceiverService : HttpService(_state) {
         "/v1/items/sync" to mapOf(
             "POST" to ::onPostItemsSync,
         ),
-        // todo /v1/items/sync
-        "/v1/items/sync/merge" to mapOf(
+        "/v1/items/merge" to mapOf(
             "POST" to ::onPostItemsSyncMerge,
         ),
     )
