@@ -18,7 +18,7 @@ plugins {
 
 fun ComponentIdentity.getVersion(): String {
     val flavors = productFlavors.map { (it, _) -> it }
-    check(flavors.isEmpty()) { "Flavors \"$flavorName\" are not supported!" }
+//    check(flavors.isEmpty()) { "Flavors \"$flavorName\" are not supported!" } // todo
     val versionName = android.defaultConfig.versionName ?: error("No version name!")
     check(versionName.isNotBlank())
     val versionCode = android.defaultConfig.versionCode ?: error("No version code!")
@@ -67,6 +67,18 @@ android {
     }
 
     composeOptions.kotlinCompilerExtensionVersion = Version.Android.compose
+
+    productFlavors {
+        "device".also { dimension ->
+            flavorDimensions += dimension
+            create("phone") {
+                this.dimension = dimension
+            }
+            create("watch") {
+                this.dimension = dimension
+            }
+        }
+    }
 }
 
 androidComponents.onVariants { variant ->
@@ -109,6 +121,8 @@ androidComponents.onVariants { variant ->
 }
 
 dependencies {
+    debugImplementation("androidx.compose.ui:ui-tooling:${Version.Android.compose}")
+    debugImplementation("androidx.compose.ui:ui-tooling-preview:${Version.Android.compose}")
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("androidx.compose.foundation:foundation:${Version.Android.compose}")
     implementation("androidx.security:security-crypto:1.0.0")
