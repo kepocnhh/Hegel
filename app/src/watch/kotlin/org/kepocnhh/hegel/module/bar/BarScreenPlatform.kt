@@ -1,4 +1,4 @@
-package org.kepocnhh.hegel.module.foo
+package org.kepocnhh.hegel.module.bar
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -27,10 +28,10 @@ import org.kepocnhh.hegel.util.compose.ListPlatform
 import java.util.UUID
 
 @Composable
-internal fun FooScreen(
+internal fun BarScreen(
     onBack: () -> Unit,
-    state: FooLogics.State,
-    items: FooLogics.Items,
+    state: BarLogics.State,
+    items: BarLogics.Items,
     onDelete: (UUID) -> Unit,
     onAdd: () -> Unit,
     onUpdate: (UUID) -> Unit,
@@ -71,8 +72,11 @@ internal fun FooScreen(
                                     overflow = TextOverflow.Ellipsis,
                                 )
                                 BasicText(
-                                    text = described.item.text,
-                                    style = TextStyle(fontSize = 14.sp),
+                                    text = described.item.count.toString(),
+                                    style = TextStyle(
+                                        fontFamily = FontFamily.Monospace,
+                                        fontSize = 14.sp,
+                                    ),
                                 )
                             }
                             Spacer(modifier = Modifier.width(8.dp))

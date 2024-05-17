@@ -15,6 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.IntOffset
+import org.kepocnhh.hegel.module.bar.BarScreen
 import org.kepocnhh.hegel.module.foo.FooScreen
 import org.kepocnhh.hegel.module.main.MainScreen
 import org.kepocnhh.hegel.module.receiver.ReceiverService
@@ -61,6 +62,11 @@ internal fun RouterScreen(onBack: () -> Unit) {
                     // noop
                 }
                 MainScreen.State.Foo -> FooScreen(
+                    onBack = {
+                        state.value = null
+                    },
+                )
+                MainScreen.State.Bar -> BarScreen(
                     onBack = {
                         state.value = null
                     },

@@ -9,7 +9,7 @@ import androidx.wear.tooling.preview.devices.WearDevices
 @Composable
 private fun RouterScreenPreview() {
     RouterScreen(
-        onDismissed = {
+        onBack = {
             // noop
         },
     )
