@@ -18,18 +18,20 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import org.kepocnhh.hegel.App
-import java.time.format.TextStyle
+import org.kepocnhh.hegel.util.compose.BackHandler
 import java.util.Date
 import java.util.UUID
 
 @Composable
 internal fun FooScreen(
+    onBack: () -> Unit,
     state: FooLogics.State,
     items: FooLogics.Items,
     onDelete: (UUID) -> Unit,
     onAdd: () -> Unit,
     onUpdate: (UUID) -> Unit,
 ) {
+    BackHandler(block = onBack)
     Box(
         modifier = Modifier
             .fillMaxSize()

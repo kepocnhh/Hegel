@@ -1,12 +1,9 @@
 package org.kepocnhh.hegel.module.router
 
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.snap
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.slideIn
 import androidx.compose.animation.slideOut
 import androidx.compose.foundation.background
@@ -18,20 +15,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.IntOffset
-import androidx.wear.compose.foundation.BasicSwipeToDismissBox
-import androidx.wear.compose.foundation.SwipeToDismissBoxState
-import androidx.wear.compose.foundation.SwipeToDismissKeys
-import androidx.wear.compose.foundation.rememberSwipeToDismissBoxState
-import org.kepocnhh.hegel.module.bar.BarScreen
 import org.kepocnhh.hegel.module.foo.FooScreen
 import org.kepocnhh.hegel.module.main.MainScreen
-import org.kepocnhh.hegel.module.receiver.ReceiverScreen
 import org.kepocnhh.hegel.module.receiver.ReceiverService
-import org.kepocnhh.hegel.module.transmitter.TransmitterScreen
 import org.kepocnhh.hegel.util.http.HttpService
 
 @Composable
-internal fun RouterScreen(onDismissed: () -> Unit) {
+internal fun RouterScreen(onBack: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -49,26 +39,6 @@ internal fun RouterScreen(onDismissed: () -> Unit) {
                 state.value = it
             },
         )
-        /*
-        AnimatedContent(
-            targetState = state.value,
-            label = "MainScreen.State",
-        ) {
-            when (it) {
-                MainScreen.State.Foo -> FooScreen(
-                    onBack = {
-                        state.value = null
-                    },
-                )
-                MainScreen.State.Bar -> TODO()
-                MainScreen.State.Receiver -> TODO()
-                MainScreen.State.Transmitter -> TODO()
-                null -> {
-                    // noop
-                }
-            }
-        }
-        */
         val visible = state.value != null
         AnimatedVisibility(
             modifier = Modifier.fillMaxSize(),

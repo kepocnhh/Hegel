@@ -15,11 +15,8 @@ internal class MainActivity : AppCompatActivity() {
             App.Theme.Composition(
                 onBackPressedDispatcher = onBackPressedDispatcher,
             ) {
-//                BackHandler {
-//                    finish()
-//                } // todo
                 RouterScreen(
-                    onDismissed = {
+                    onBack = {
                         finish()
                     },
                 )
