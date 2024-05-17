@@ -23,8 +23,8 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.wear.compose.foundation.BasicSwipeToDismissBox
 import org.kepocnhh.hegel.util.compose.ListPlatform
+import org.kepocnhh.hegel.util.compose.STDBox
 import java.util.UUID
 
 @Composable
@@ -36,11 +36,11 @@ internal fun BarScreen(
     onAdd: () -> Unit,
     onUpdate: (UUID) -> Unit,
 ) {
-    BasicSwipeToDismissBox(
+    STDBox(
         modifier = Modifier.fillMaxSize(),
         onDismissed = onBack,
-    ) { isBackground: Boolean ->
-        if (!isBackground) Box(
+    ) {
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.White),

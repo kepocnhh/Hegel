@@ -4,10 +4,13 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideIn
 import androidx.compose.animation.slideOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
@@ -19,7 +22,9 @@ import org.kepocnhh.hegel.module.bar.BarScreen
 import org.kepocnhh.hegel.module.foo.FooScreen
 import org.kepocnhh.hegel.module.main.MainScreen
 import org.kepocnhh.hegel.module.receiver.ReceiverService
+import org.kepocnhh.hegel.module.transmitter.TransmitterScreen
 import org.kepocnhh.hegel.util.http.HttpService
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 internal fun RouterScreen(onBack: () -> Unit) {
@@ -41,13 +46,37 @@ internal fun RouterScreen(onBack: () -> Unit) {
             },
         )
         val visible = state.value != null
+        val duration = 250.milliseconds
+//        val duration = 500.milliseconds
+//        val duration = 1_000.milliseconds
+        AnimatedVisibility(
+            modifier = Modifier.fillMaxSize(),
+            visible = visible,
+            enter = fadeIn(
+                animationSpec = tween(
+                    durationMillis = duration.inWholeMilliseconds.toInt(),
+                    easing = FastOutSlowInEasing,
+                ),
+            ),
+            exit = fadeOut(
+                animationSpec = tween(
+                    durationMillis = duration.inWholeMilliseconds.toInt(),
+                    easing = FastOutSlowInEasing,
+                ),
+            ),
+        ) {
+            Spacer(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.75f)),
+            )
+        }
         AnimatedVisibility(
             modifier = Modifier.fillMaxSize(),
             visible = visible,
             enter = slideIn(
                 animationSpec = tween(
-                    durationMillis = 250,
-                    delayMillis = 0,
+                    durationMillis = duration.inWholeMilliseconds.toInt(),
                     easing = FastOutSlowInEasing,
                 ),
                 initialOffset = { IntOffset(x = it.width, y = 0) },
@@ -67,6 +96,11 @@ internal fun RouterScreen(onBack: () -> Unit) {
                     },
                 )
                 MainScreen.State.Bar -> BarScreen(
+                    onBack = {
+                        state.value = null
+                    },
+                )
+                MainScreen.State.Transmitter -> TransmitterScreen(
                     onBack = {
                         state.value = null
                     },

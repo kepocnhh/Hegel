@@ -23,6 +23,7 @@ import org.kepocnhh.hegel.module.bar.BarScreen
 import org.kepocnhh.hegel.module.foo.FooScreen
 import org.kepocnhh.hegel.module.main.MainScreen
 import org.kepocnhh.hegel.module.receiver.ReceiverService
+import org.kepocnhh.hegel.module.transmitter.TransmitterScreen
 import org.kepocnhh.hegel.util.compose.BackHandler
 import org.kepocnhh.hegel.util.http.HttpService
 import kotlin.time.Duration.Companion.milliseconds
@@ -97,6 +98,11 @@ internal fun RouterScreen(onBack: () -> Unit) {
                     },
                 )
                 MainScreen.State.Bar -> BarScreen(
+                    onBack = {
+                        state.value = null
+                    },
+                )
+                MainScreen.State.Transmitter -> TransmitterScreen(
                     onBack = {
                         state.value = null
                     },

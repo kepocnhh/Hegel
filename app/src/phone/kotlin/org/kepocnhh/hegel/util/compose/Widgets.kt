@@ -14,13 +14,14 @@ import androidx.compose.ui.unit.dp
 @Composable
 internal fun Button(
     text: String,
+    enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
     BasicText(
         modifier = Modifier
             .fillMaxWidth()
             .height(64.dp)
-            .clickable(onClick = onClick)
+            .clickable(enabled = enabled, onClick = onClick)
             .wrapContentSize(),
         text = text,
         style = TextStyle(color = Color.Black)
