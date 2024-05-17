@@ -1,6 +1,6 @@
-package org.kepocnhh.hegel.module.router
+package org.kepocnhh.hegel.module.main
 
-internal object RouterScreen {
+internal object MainScreen {
     enum class State {
         Foo,
         Bar,

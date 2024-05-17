@@ -9,7 +9,6 @@ import java.util.UUID
 
 @Composable
 internal fun FooScreen(onBack: () -> Unit) {
-    BackHandler(block = onBack)
     val logics = App.logics<FooLogics>()
     val state = logics.state.collectAsState().value
     val items = logics.items.collectAsState().value
@@ -20,6 +19,7 @@ internal fun FooScreen(onBack: () -> Unit) {
     }
     if (items == null) return
     FooScreen(
+        onBack = onBack,
         state = state,
         items = items,
         onDelete = logics::deleteItem,

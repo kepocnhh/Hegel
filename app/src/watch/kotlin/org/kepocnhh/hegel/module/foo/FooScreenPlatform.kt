@@ -1,5 +1,7 @@
 package org.kepocnhh.hegel.module.foo
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -24,85 +26,90 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.wear.compose.foundation.BasicSwipeToDismissBox
 import androidx.wear.compose.foundation.lazy.AutoCenteringParams
 import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
 import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
+import androidx.wear.compose.foundation.rememberSwipeToDismissBoxState
+import org.kepocnhh.hegel.util.compose.ListPlatform
 import java.util.UUID
 
 @Composable
 internal fun FooScreen(
+    onBack: () -> Unit,
     state: FooLogics.State,
     items: FooLogics.Items,
     onDelete: (UUID) -> Unit,
     onAdd: () -> Unit,
     onUpdate: (UUID) -> Unit,
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.White),
-    ) {
-        ScalingLazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            state = rememberScalingLazyListState(0, 0),
-            contentPadding = PaddingValues(),
-            autoCentering = AutoCenteringParams(0, 0),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+    BasicSwipeToDismissBox(
+        modifier = Modifier.fillMaxSize(),
+        onDismissed = onBack,
+    ) { isBackground: Boolean ->
+        if (!isBackground) Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.White),
         ) {
-            items.list.forEachIndexed { index, described ->
-                item(
-                    key = described.id,
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable(enabled = !state.loading) {
-                                onUpdate(described.id)
-                            }
-                            .padding(horizontal = 16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
+            ListPlatform(
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                items.list.forEachIndexed { index, described ->
+                    item(
+                        key = described.id,
                     ) {
-                        Column(
+                        Row(
                             modifier = Modifier
-                                .weight(1f),
+                                .fillMaxWidth()
+                                .clickable(enabled = !state.loading) {
+                                    onUpdate(described.id)
+                                }
+                                .padding(horizontal = 16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f),
+                            ) {
+                                BasicText(
+                                    text = "$index) ${described.id}",
+                                    style = TextStyle(fontSize = 10.sp),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                                BasicText(
+                                    text = described.item.text,
+                                    style = TextStyle(fontSize = 14.sp),
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
                             BasicText(
-                                text = "$index) ${described.id}",
-                                style = TextStyle(fontSize = 10.sp),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            BasicText(
-                                text = described.item.text,
-                                style = TextStyle(fontSize = 14.sp),
+                                modifier = Modifier
+                                    .background(Color.Black)
+                                    .size(24.dp)
+                                    .clickable(enabled = !state.loading) {
+                                        onDelete(described.id)
+                                    }
+                                    .wrapContentSize(),
+                                text = "x",
+                                style = TextStyle(color = Color.White),
                             )
                         }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        BasicText(
-                            modifier = Modifier
-                                .background(Color.Black)
-                                .size(24.dp)
-                                .clickable(enabled = !state.loading) {
-                                    onDelete(described.id)
-                                }
-                                .wrapContentSize(),
-                            text = "x",
-                            style = TextStyle(color = Color.White),
-                        )
                     }
                 }
             }
+            BasicText(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(42.dp)
+                    .align(Alignment.BottomCenter)
+                    .background(Color.Black.copy(alpha = 0.5f))
+                    .clickable(enabled = !state.loading, onClick = onAdd)
+                    .wrapContentSize(),
+                text = "+",
+                style = TextStyle(color = Color.White),
+            )
         }
-        BasicText(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(42.dp)
-                .align(Alignment.BottomCenter)
-                .background(Color.Black.copy(alpha = 0.5f))
-                .clickable(enabled = !state.loading, onClick = onAdd)
-                .wrapContentSize(),
-            text = "+",
-            style = TextStyle(color = Color.White),
-        )
     }
 }

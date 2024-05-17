@@ -1,50 +1,101 @@
 package org.kepocnhh.hegel.module.router
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.slideIn
+import androidx.compose.animation.slideOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.wrapContentSize
-import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
-import androidx.wear.compose.foundation.lazy.AutoCenteringParams
-import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
-import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
+import androidx.compose.ui.unit.IntOffset
+import androidx.wear.compose.foundation.BasicSwipeToDismissBox
+import androidx.wear.compose.foundation.SwipeToDismissBoxState
+import androidx.wear.compose.foundation.SwipeToDismissKeys
+import androidx.wear.compose.foundation.rememberSwipeToDismissBoxState
+import org.kepocnhh.hegel.module.bar.BarScreen
+import org.kepocnhh.hegel.module.foo.FooScreen
+import org.kepocnhh.hegel.module.main.MainScreen
+import org.kepocnhh.hegel.module.receiver.ReceiverScreen
+import org.kepocnhh.hegel.module.receiver.ReceiverService
+import org.kepocnhh.hegel.module.transmitter.TransmitterScreen
+import org.kepocnhh.hegel.util.http.HttpService
 
 @Composable
-internal fun RouterScreen(onState: (RouterScreen.State) -> Unit) {
+internal fun RouterScreen(onDismissed: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White),
     ) {
-        ScalingLazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            state = rememberScalingLazyListState(0, 0),
-            contentPadding = PaddingValues(),
-            autoCentering = AutoCenteringParams(0, 0),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+        val state = remember {
+            val value = when (ReceiverService.state.value) {
+                is HttpService.State.Stopped -> null
+                else -> MainScreen.State.Receiver
+            }
+            mutableStateOf<MainScreen.State?>(value)
+        }
+        MainScreen(
+            onState = {
+                state.value = it
+            },
+        )
+        /*
+        AnimatedContent(
+            targetState = state.value,
+            label = "MainScreen.State",
         ) {
-            RouterScreen.State.entries.forEach { state ->
-                item(key = state.name) {
-                    BasicText(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(36.dp)
-                            .clickable {
-                                onState(state)
-                            }
-                            .wrapContentSize(),
-                        text = state.name,
-                    )
+            when (it) {
+                MainScreen.State.Foo -> FooScreen(
+                    onBack = {
+                        state.value = null
+                    },
+                )
+                MainScreen.State.Bar -> TODO()
+                MainScreen.State.Receiver -> TODO()
+                MainScreen.State.Transmitter -> TODO()
+                null -> {
+                    // noop
                 }
+            }
+        }
+        */
+        val visible = state.value != null
+        AnimatedVisibility(
+            modifier = Modifier.fillMaxSize(),
+            visible = visible,
+            enter = slideIn(
+                animationSpec = tween(
+                    durationMillis = 250,
+                    delayMillis = 0,
+                    easing = FastOutSlowInEasing,
+                ),
+                initialOffset = { IntOffset(x = it.width, y = 0) },
+            ),
+            exit = slideOut(
+                animationSpec = snap(delayMillis = 0),
+                targetOffset = { IntOffset(x = it.width, y = 0) },
+            ),
+        ) {
+            when (state.value) {
+                null -> {
+                    // noop
+                }
+                MainScreen.State.Foo -> FooScreen(
+                    onBack = {
+                        state.value = null
+                    },
+                )
+                else -> TODO()
             }
         }
     }

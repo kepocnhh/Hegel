@@ -17,6 +17,9 @@ private fun FooScreenPreview(
 ) {
     PreviewComposition {
         FooScreen(
+            onBack = {
+                // noop
+            },
             state = state,
             items = items,
             onDelete = {
