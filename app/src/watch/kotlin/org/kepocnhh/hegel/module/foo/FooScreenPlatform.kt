@@ -26,8 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.wear.compose.foundation.lazy.AutoCenteringParams
 import androidx.wear.compose.foundation.lazy.ScalingLazyColumn
-import androidx.wear.compose.foundation.lazy.ScalingLazyColumnDefaults
-import org.kepocnhh.hegel.App
+import androidx.wear.compose.foundation.lazy.rememberScalingLazyListState
 import java.util.UUID
 
 @Composable
@@ -44,11 +43,9 @@ internal fun FooScreen(
             .background(Color.White),
     ) {
         ScalingLazyColumn(
-//            contentPadding = App.Theme.insets, // todo
+            modifier = Modifier.fillMaxSize(),
+            state = rememberScalingLazyListState(0, 0),
             contentPadding = PaddingValues(),
-//            scalingParams = ScalingLazyColumnDefaults.scalingParams(
-//                viewportVerticalOffsetResolver = { 0 },
-//            ),
             autoCentering = AutoCenteringParams(0, 0),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
