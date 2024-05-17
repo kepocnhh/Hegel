@@ -41,12 +41,14 @@ internal fun STDBox(
     state: SwipeToDismissBoxState = rememberSwipeToDismissBoxState(
         animationSpec = snap(delayMillis = 0),
     ),
+    userSwipeEnabled: Boolean = true,
     onDismissed: () -> Unit,
     content: @Composable BoxScope.() -> Unit
 ) {
     BasicSwipeToDismissBox(
         modifier = modifier,
         state = state,
+        userSwipeEnabled = userSwipeEnabled,
         onDismissed = onDismissed,
     ) { isBackground: Boolean ->
         if (!isBackground) content()

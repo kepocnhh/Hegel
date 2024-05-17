@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.IntOffset
 import org.kepocnhh.hegel.module.bar.BarScreen
 import org.kepocnhh.hegel.module.foo.FooScreen
 import org.kepocnhh.hegel.module.main.MainScreen
+import org.kepocnhh.hegel.module.receiver.ReceiverScreen
 import org.kepocnhh.hegel.module.receiver.ReceiverService
 import org.kepocnhh.hegel.module.transmitter.TransmitterScreen
 import org.kepocnhh.hegel.util.compose.BackHandler
@@ -107,7 +108,11 @@ internal fun RouterScreen(onBack: () -> Unit) {
                         state.value = null
                     },
                 )
-                else -> TODO()
+                MainScreen.State.Receiver -> ReceiverScreen(
+                    onBack = {
+                        state.value = null
+                    },
+                )
             }
         }
     }
