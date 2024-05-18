@@ -18,6 +18,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import org.kepocnhh.hegel.App
@@ -28,18 +30,17 @@ import org.kepocnhh.hegel.util.compose.Button
 internal fun TransmitterScreen(
     onBack: () -> Unit,
     state: TransmitterLogics.State,
+    savedSpec: String?,
+    onSync: (String) -> Unit,
 ) {
     BackHandler(block = onBack)
-    val logics = App.logics<TransmitterLogics>()
-    val savedAddressState = logics.addressState.collectAsState().value
     val addressState = remember { mutableStateOf("") }
-    LaunchedEffect(savedAddressState) {
-        if (savedAddressState == null) {
-            logics.requestAddressState()
-        } else {
-            addressState.value = savedAddressState.value.toString()
+    LaunchedEffect(savedSpec) {
+        if (!savedSpec.isNullOrBlank()) {
+            addressState.value = savedSpec
         }
     }
+    val focusRequester = remember { FocusRequester() }
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -66,7 +67,10 @@ internal fun TransmitterScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(Color.White, shape = RoundedCornerShape(8.dp))
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .focusRequester(focusRequester),
+                    enabled = !state.loading,
+                    readOnly = state.loading,
                     value = addressState.value,
                     onValueChange = { addressState.value = it },
                 )
@@ -80,7 +84,7 @@ internal fun TransmitterScreen(
                     text = "sync",
                     enabled = !state.loading,
                     onClick = {
-                        logics.itemsSync(spec = addressState.value)
+                        onSync(addressState.value)
                     },
                 )
             }
