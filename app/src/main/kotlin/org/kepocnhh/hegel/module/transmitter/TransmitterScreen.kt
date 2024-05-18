@@ -30,8 +30,18 @@ internal fun TransmitterScreen(onBack: () -> Unit) {
             }
         }
     }
+    val savedAddressState = logics.addressState.collectAsState().value
+    LaunchedEffect(savedAddressState) {
+        if (savedAddressState == null) {
+            logics.requestAddressState()
+        }
+    }
     TransmitterScreen(
         onBack = onBack,
         state = logics.state.collectAsState().value,
+        savedSpec = savedAddressState?.value?.toString(),
+        onSync = { spec ->
+            logics.itemsSync(spec = spec)
+        },
     )
 }

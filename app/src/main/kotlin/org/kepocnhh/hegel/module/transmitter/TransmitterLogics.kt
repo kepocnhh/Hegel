@@ -126,6 +126,8 @@ internal class TransmitterLogics(
                 if (!protocols.contains(protocol)) error("Protocol \"$protocol\" is not supported!")
                 url
             }.recoverCatching {
+                if (spec.isEmpty()) error("Spec is empty!")
+                if (spec.isBlank()) error("Spec is blank!")
                 URL("http://$spec")
             }
         }.fold(
