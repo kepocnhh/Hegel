@@ -18,7 +18,7 @@ plugins {
 
 fun ComponentIdentity.getVersion(): String {
     val flavors = productFlavors.map { (it, _) -> it }
-    check(flavors.isEmpty()) { "Flavors \"$flavorName\" are not supported!" }
+//    check(flavors.isEmpty()) { "Flavors \"$flavorName\" are not supported!" } // todo
     val versionName = android.defaultConfig.versionName ?: error("No version name!")
     check(versionName.isNotBlank())
     val versionCode = android.defaultConfig.versionCode ?: error("No version code!")
@@ -46,8 +46,8 @@ android {
         applicationId = namespace
         minSdk = Version.Android.minSdk
         targetSdk = Version.Android.targetSdk
-        versionCode = 8
-        versionName = "0.3.0"
+        versionCode = 10
+        versionName = "0.4.1"
         manifestPlaceholders["appName"] = "@string/app_name"
     }
 
@@ -67,6 +67,18 @@ android {
     }
 
     composeOptions.kotlinCompilerExtensionVersion = Version.Android.compose
+
+    productFlavors {
+        "device".also { dimension ->
+            flavorDimensions += dimension
+            create("phone") {
+                this.dimension = dimension
+            }
+            create("watch") {
+                this.dimension = dimension
+            }
+        }
+    }
 }
 
 androidComponents.onVariants { variant ->
@@ -109,10 +121,14 @@ androidComponents.onVariants { variant ->
 }
 
 dependencies {
+    debugImplementation("androidx.compose.ui:ui-tooling:${Version.Android.compose}")
+    debugImplementation("androidx.compose.ui:ui-tooling-preview:${Version.Android.compose}")
+    debugImplementation("androidx.wear:wear-tooling-preview:1.0.0")
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("androidx.compose.foundation:foundation:${Version.Android.compose}")
     implementation("androidx.security:security-crypto:1.0.0")
     implementation("com.github.kepocnhh:Logics:0.1.3-SNAPSHOT")
     implementation("com.github.kepocnhh:Storages:0.4.2u-SNAPSHOT")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    "watchImplementation"("androidx.wear.compose:compose-foundation:1.3.1")
 }

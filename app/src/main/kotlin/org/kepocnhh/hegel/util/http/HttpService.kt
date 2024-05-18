@@ -87,7 +87,16 @@ internal abstract class HttpService(
     protected abstract fun onSocketAccept(request: HttpRequest): HttpResponse
 
     private fun onStarting(serverSocket: ServerSocket) {
-        val address = getInetAddress().hostAddress ?: TODO()
+        val address = try {
+            getInetAddress().hostAddress ?: error("No host address!")
+        } catch (e: Throwable) {
+            println("[HttpService] get address error: $e") // todo
+            runCatching { serverSocket.close() }.onFailure {
+                println("[HttpService] socket($serverSocket) close error: $it") // todo
+            }
+            _state.value = State.Stopped
+            return
+        }
         if (this.serverSocket != null) TODO()
         this.serverSocket = serverSocket
         _state.value = State.Started("$address:${serverSocket.localPort}")

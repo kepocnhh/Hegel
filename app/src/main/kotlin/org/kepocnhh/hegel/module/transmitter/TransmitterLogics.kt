@@ -12,6 +12,8 @@ import org.kepocnhh.hegel.entity.ItemsSyncResponse
 import org.kepocnhh.hegel.module.app.Injection
 import sp.kx.logics.Logics
 import sp.kx.storages.MergeInfo
+import java.net.URI
+import java.net.URL
 import java.util.UUID
 
 internal class TransmitterLogics(
@@ -19,36 +21,32 @@ internal class TransmitterLogics(
 ) : Logics(injection.contexts.main) {
     sealed interface Broadcast {
         class OnSync(val result: Result<Unit>) : Broadcast
+        class OnAddressError(val error: Throwable) : Broadcast
     }
 
     data class State(
         val loading: Boolean,
     )
 
+    data class AddressState(
+        val value: URL,
+    )
+
     private val logger = injection.loggers.create("[Transmitter]")
     private val _state = MutableStateFlow(State(loading = false))
     val state = _state.asStateFlow()
+    private val _addressState = MutableStateFlow<AddressState?>(null)
+    val addressState = _addressState.asStateFlow()
     private val _broadcast = MutableSharedFlow<Broadcast>()
     val broadcast = _broadcast.asSharedFlow()
 
-    private suspend fun onSyncMerge(response: ItemsSyncMergeResponse) {
-        logger.debug("sync merge...")
+    private suspend fun itemsMerge(response: ItemsSyncMergeResponse) {
+        logger.debug("items merge...")
         withContext(injection.contexts.default) {
             injection.storages.commit(infos = response.commits)
         }
         _state.value = State(loading = false)
         _broadcast.emit(Broadcast.OnSync(Result.success(Unit)))
-    }
-
-    private suspend fun onSyncMerge(result: Result<ItemsSyncMergeResponse>) {
-        if (result.isFailure) {
-            val error = result.exceptionOrNull() ?: TODO()
-            logger.warning("sync merge: $error")
-            _state.value = State(loading = false)
-            _broadcast.emit(Broadcast.OnSync(Result.failure(error)))
-            return
-        }
-        onSyncMerge(result.getOrThrow())
     }
 
     private suspend fun onNeedUpdate(response: ItemsSyncResponse.NeedUpdate) {
@@ -57,7 +55,7 @@ internal class TransmitterLogics(
         val merges = withContext(injection.contexts.default) {
             injection.storages.getMergeInfo(infos = response.syncs)
         }
-        val result = withContext(injection.contexts.default) {
+        withContext(injection.contexts.default) {
             runCatching {
                 val request = ItemsSyncMergeRequest(
                     sessionId = response.sessionId,
@@ -66,10 +64,19 @@ internal class TransmitterLogics(
                 merges.forEach { (storageId, mergeInfo) ->
                     logger.debug("upload[$storageId]: " + mergeInfo.items.map { it.id }) // todo
                 } // todo
-                injection.remotes.itemsSyncMerge(request)
+                val url = injection.locals.address ?: TODO()
+                injection.remotes.items(url = url).merge(request)
             }
-        }
-        onSyncMerge(result)
+        }.fold(
+            onSuccess = {
+                itemsMerge(response = it)
+            },
+            onFailure = { error ->
+                logger.warning("items merge: $error")
+                _state.value = State(loading = false)
+                _broadcast.emit(Broadcast.OnSync(Result.failure(error)))
+            },
+        )
     }
 
     private suspend fun onResponse(response: ItemsSyncResponse) {
@@ -86,27 +93,69 @@ internal class TransmitterLogics(
         }
     }
 
-    private suspend fun onResponse(result: Result<ItemsSyncResponse>) {
-        if (result.isFailure) {
-            val error = result.exceptionOrNull() ?: TODO()
-            logger.warning("sync items: $error")
-            _state.value = State(loading = false)
-            _broadcast.emit(Broadcast.OnSync(Result.failure(error)))
-            return
-        }
-        onResponse(result.getOrThrow())
-    }
-
-    fun syncItems() = launch {
-        logger.debug("sync items...")
-        _state.value = State(loading = true)
-        val result = withContext(injection.contexts.default) {
+    private suspend fun itemsSync(url: URL) {
+        logger.debug("items sync...")
+        withContext(injection.contexts.default) {
             runCatching {
                 val request = ItemsSyncRequest(hashes = injection.storages.hashes())
                 logger.debug("hashes: ${request.hashes}")
-                injection.remotes.itemsSync(request)
+                injection.remotes.items(url).sync(request)
             }
+        }.fold(
+            onSuccess = { response ->
+                withContext(injection.contexts.default) {
+                    injection.locals.address = url
+                }
+                onResponse(response)
+            },
+            onFailure = { error ->
+                logger.warning("sync items: $error")
+                _state.value = State(loading = false)
+                _broadcast.emit(Broadcast.OnSync(Result.failure(error)))
+            },
+        )
+    }
+
+    fun itemsSync(spec: String) = launch {
+        _state.value = State(loading = true)
+        withContext(injection.contexts.default) {
+            runCatching {
+                val url = URL(spec)
+                val protocols = setOf("http")
+                val protocol = url.protocol
+                if (!protocols.contains(protocol)) error("Protocol \"$protocol\" is not supported!")
+                url
+            }.recoverCatching {
+                if (spec.isEmpty()) error("Spec is empty!")
+                if (spec.isBlank()) error("Spec is blank!")
+                URL("http://$spec")
+            }
+        }.fold(
+            onSuccess = { url ->
+                val message = """
+                    url: $url
+                    protocol: ${url.protocol}
+                    host: ${url.host}
+                    port: ${url.port}
+                    path: ${url.path}
+                """.trimIndent()
+                logger.debug(message) // todo
+                itemsSync(url = url)
+            },
+            onFailure = { error ->
+                logger.warning("url parse error: $error")
+                _state.value = State(loading = false)
+                _broadcast.emit(Broadcast.OnAddressError(error = error))
+            },
+        )
+    }
+
+    fun requestAddressState() = launch {
+        val address = withContext(injection.contexts.default) {
+            injection.locals.address
         }
-        onResponse(result)
+        if (address != null) {
+            _addressState.value = AddressState(value = address)
+        }
     }
 }
