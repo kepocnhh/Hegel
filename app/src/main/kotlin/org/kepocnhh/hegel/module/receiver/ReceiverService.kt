@@ -24,11 +24,11 @@ internal class ReceiverService : HttpService(_state) {
             "POST" to ::onPostItemsSync,
         ),
         "/v1/items/merge" to mapOf(
-            "POST" to ::onPostItemsSyncMerge,
+            "POST" to ::onPostItemsMerge,
         ),
     )
 
-    private fun onSyncMerge(request: ItemsSyncMergeRequest): HttpResponse {
+    private fun onItemsMerge(request: ItemsSyncMergeRequest): HttpResponse {
         val oldSession = App.injection.locals.session
         if (oldSession == null) {
             return HttpResponse(
@@ -64,13 +64,13 @@ internal class ReceiverService : HttpService(_state) {
         )
     }
 
-    private fun onPostItemsSyncMerge(request: HttpRequest): HttpResponse {
-        logger.debug("on post items sync merge...")
+    private fun onPostItemsMerge(request: HttpRequest): HttpResponse {
+        logger.debug("on post items merge...")
         val bytes = request.body ?: TODO()
-        return onSyncMerge(App.injection.serializer.remote.syncMerge.decode(bytes))
+        return onItemsMerge(App.injection.serializer.remote.syncMerge.decode(bytes))
     }
 
-    private fun onMetaSync(hashes: Map<UUID, String>): HttpResponse {
+    private fun onItemsSync(hashes: Map<UUID, String>): HttpResponse {
         val oldSession = App.injection.locals.session
         if (oldSession != null) {
             if (oldSession.expires > System.currentTimeMillis().milliseconds) {
@@ -116,7 +116,7 @@ internal class ReceiverService : HttpService(_state) {
         logger.debug("on post items sync...")
         val bytes = request.body ?: TODO()
         val syncRequest = App.injection.serializer.remote.syncRequest.decode(bytes)
-        return onMetaSync(hashes = syncRequest.hashes)
+        return onItemsSync(hashes = syncRequest.hashes)
     }
 
     override fun onSocketAccept(request: HttpRequest): HttpResponse {

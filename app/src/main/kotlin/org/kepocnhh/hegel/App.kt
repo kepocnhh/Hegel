@@ -15,6 +15,7 @@ import org.kepocnhh.hegel.entity.Session
 import org.kepocnhh.hegel.module.app.Injection
 import org.kepocnhh.hegel.provider.Contexts
 import org.kepocnhh.hegel.provider.EncryptedFileStorage
+import org.kepocnhh.hegel.provider.FinalLocals
 import org.kepocnhh.hegel.provider.FinalLoggers
 import org.kepocnhh.hegel.provider.FinalRemotes
 import org.kepocnhh.hegel.provider.JsonSerializer
@@ -53,10 +54,6 @@ internal class App : Application() {
         }
     }
 
-    private class MockLocals : Locals {
-        override var session: Session? = null
-    }
-
     override fun onCreate() {
         super.onCreate()
         val serializer: Serializer = JsonSerializer()
@@ -66,7 +63,7 @@ internal class App : Application() {
                 default = Dispatchers.Default,
             ),
             loggers = FinalLoggers,
-            locals = MockLocals(), // todo
+            locals = FinalLocals(context = this),
             storages = SyncStorages.Builder()
                 .add(
                     EncryptedFileStorage(

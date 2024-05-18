@@ -24,6 +24,9 @@ internal fun TransmitterScreen(onBack: () -> Unit) {
                         },
                     )
                 }
+                is TransmitterLogics.Broadcast.OnAddressError -> {
+                    context.showToast("address error: ${broadcast.error}") // todo
+                }
             }
         }
     }

@@ -7,6 +7,8 @@ import org.kepocnhh.hegel.entity.ItemsSyncMergeRequest
 import org.kepocnhh.hegel.entity.ItemsSyncMergeResponse
 import org.kepocnhh.hegel.entity.ItemsSyncRequest
 import org.kepocnhh.hegel.entity.ItemsSyncResponse
+import org.kepocnhh.hegel.provider.okhttp.OkHttpItemsRemotes
+import java.net.URL
 import java.util.concurrent.TimeUnit
 
 internal class FinalRemotes(
@@ -19,40 +21,11 @@ internal class FinalRemotes(
         .writeTimeout(5, TimeUnit.SECONDS)
         .build()
 
-    private val URL = "http://192.168.88.225:40631" // todo
-
-    override fun itemsSync(request: ItemsSyncRequest): ItemsSyncResponse {
-        val request = Request.Builder()
-            .url("$URL/v1/items/sync") // todo
-            .header("Content-Type", "application/json")
-            .post(serializer.remote.syncRequest.encode(request).toRequestBody())
-            .build()
-        return client.newCall(request).execute().use { response ->
-            when (response.code) {
-                200 -> {
-                    val bytes = response.body?.bytes() ?: TODO()
-                    serializer.remote.needUpdate.decode(bytes)
-                }
-                304 -> ItemsSyncResponse.NotModified
-                else -> TODO("FinalRemotes:itemsSync:Unknown code ${response.code}!")
-            }
-        }
-    }
-
-    override fun itemsSyncMerge(request: ItemsSyncMergeRequest): ItemsSyncMergeResponse {
-        val request = Request.Builder()
-            .url("$URL/v1/items/merge") // todo
-            .header("Content-Type", "application/json")
-            .post(serializer.remote.syncMerge.encode(request).toRequestBody())
-            .build()
-        return client.newCall(request).execute().use { response ->
-            when (response.code) {
-                200 -> {
-                    val bytes = response.body?.bytes() ?: TODO()
-                    serializer.remote.mergeResponse.decode(bytes)
-                }
-                else -> TODO("FinalRemotes:itemsSyncMerge:Unknown code ${response.code}!")
-            }
-        }
+    override fun items(url: URL): ItemsRemotes {
+        return OkHttpItemsRemotes(
+            client = client,
+            serializer = serializer,
+            url = url,
+        )
     }
 }

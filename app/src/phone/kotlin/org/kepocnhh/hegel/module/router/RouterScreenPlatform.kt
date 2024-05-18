@@ -52,6 +52,7 @@ internal fun RouterScreen(onBack: () -> Unit) {
 //        val duration = 250.milliseconds
         val duration = 500.milliseconds
 //        val duration = 1_000.milliseconds
+//        val duration = 2_000.milliseconds
         AnimatedVisibility(
             modifier = Modifier.fillMaxSize(),
             visible = state.value != null,
