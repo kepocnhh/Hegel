@@ -17,6 +17,7 @@ import java.net.InetAddress
 import java.net.NetworkInterface
 import java.net.ServerSocket
 
+@Deprecated(message = "com.github.kepocnhh:HttpReceiver") // todo https://github.com/StanleyProjects/HttpReceiver
 internal abstract class HttpService(
     private val _state: MutableStateFlow<State>,
 ) : Service() {
