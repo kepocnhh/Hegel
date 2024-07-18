@@ -29,7 +29,7 @@ internal class JsonSerializer : Serializer {
         return ItemInfo(
             created = getLong("created").milliseconds,
             updated = getLong("updated").milliseconds,
-            hash = getString("hash"),
+            hash = getString("hash").base64(),
         )
     }
 
@@ -179,6 +179,16 @@ internal class JsonSerializer : Serializer {
         return map
     }
 
+    private fun <K : Any> JSONObject.fromBase64(
+        keys: (String) -> K,
+    ): Map<K, ByteArray> {
+        val map = mutableMapOf<K, ByteArray>()
+        for (key in keys()) {
+            map[keys(key)] = getString(key).base64()
+        }
+        return map
+    }
+
     private fun <K : Any, V: Any> Map<K, V>.toStrings(
         keys: (K) -> String,
         values: (V) -> String,
@@ -196,6 +206,16 @@ internal class JsonSerializer : Serializer {
         val obj = JSONObject()
         for ((key, value) in this) {
             obj.put(keys(key), value)
+        }
+        return obj
+    }
+
+    private fun <K : Any> Map<K, ByteArray>.toBase64(
+        keys: (K) -> String,
+    ): JSONObject {
+        val obj = JSONObject()
+        for ((key, value) in this) {
+            obj.put(keys(key), value.base64())
         }
         return obj
     }
@@ -237,7 +257,7 @@ internal class JsonSerializer : Serializer {
 
     private fun JSONObject.toCommitInfo(): CommitInfo {
         return CommitInfo(
-            hash = getString("hash"),
+            hash = getString("hash").base64(),
             deleted = getJSONArray("deleted").strings(UUID::fromString).toSet(),
             items = getJSONArray("items").objects { it.toDescribed() },
         )
@@ -247,7 +267,7 @@ internal class JsonSerializer : Serializer {
         override val syncRequest: Transformer<ItemsSyncRequest> = object : Transformer<ItemsSyncRequest> {
             override fun encode(value: ItemsSyncRequest): ByteArray {
                 return JSONObject()
-                    .put("hashes", value.hashes.toStrings(keys = UUID::toString))
+                    .put("hashes", value.hashes.toBase64(keys = UUID::toString))
                     .toString()
                     .toByteArray()
             }
@@ -255,7 +275,7 @@ internal class JsonSerializer : Serializer {
             override fun decode(bytes: ByteArray): ItemsSyncRequest {
                 val obj = JSONObject(String(bytes))
                 return ItemsSyncRequest(
-                    hashes = obj.getJSONObject("hashes").strings(keys = UUID::fromString),
+                    hashes = obj.getJSONObject("hashes").fromBase64(keys = UUID::fromString),
                 )
             }
         }

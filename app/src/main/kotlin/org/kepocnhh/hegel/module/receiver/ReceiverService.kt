@@ -70,7 +70,7 @@ internal class ReceiverService : HttpService(_state) {
         return onItemsMerge(App.injection.serializer.remote.syncMerge.decode(bytes))
     }
 
-    private fun onItemsSync(hashes: Map<UUID, String>): HttpResponse {
+    private fun onItemsSync(hashes: Map<UUID, ByteArray>): HttpResponse {
         val oldSession = App.injection.locals.session
         if (oldSession != null) {
             if (oldSession.expires > System.currentTimeMillis().milliseconds) {

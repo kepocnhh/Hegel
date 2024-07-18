@@ -6,12 +6,11 @@ import android.security.keystore.KeyProperties
 import androidx.security.crypto.EncryptedFile
 import androidx.security.crypto.MasterKeys
 import org.kepocnhh.hegel.BuildConfig
+import sp.kx.storages.HashFunction
 import sp.kx.storages.SyncStreamsStorage
 import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
-import java.math.BigInteger
-import java.security.MessageDigest
 import java.util.UUID
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -22,10 +21,11 @@ internal class EncryptedFileStorage<T : Any>(
     private val transformer: Transformer<T>,
 ) : SyncStreamsStorage<T>(
     id = id,
+    hf = hf,
 ) {
     init {
         if (!file().exists()) {
-            encrypted().openFileOutput().use { it.write("\n0".toByteArray()) }
+            encrypted().openFileOutput().use { it.write(ByteArray(8)) }
         }
     }
 
@@ -41,8 +41,6 @@ internal class EncryptedFileStorage<T : Any>(
             EncryptedFile.FileEncryptionScheme.AES256_GCM_HKDF_4KB,
         ).build()
     }
-
-    private val md = MessageDigest.getInstance("MD5") // todo
 
     override fun now(): Duration {
         return System.currentTimeMillis().milliseconds // todo
@@ -60,10 +58,6 @@ internal class EncryptedFileStorage<T : Any>(
         return transformer.encode(item)
     }
 
-    override fun hash(bytes: ByteArray): String {
-        return BigInteger(1, md.digest(bytes)).toString(16)
-    }
-
     override fun inputStream(): InputStream {
         return encrypted().openFileInput()
     }
@@ -76,6 +70,7 @@ internal class EncryptedFileStorage<T : Any>(
     companion object {
         private const val KEY_ALIAS = BuildConfig.APPLICATION_ID + ":encrypted:sync:storage"
         private const val KEY_SIZE = 256
+        private val hf: HashFunction = MD5HashFunction()
 
         private fun getSpec(): KeyGenParameterSpec {
             val purposes = KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
