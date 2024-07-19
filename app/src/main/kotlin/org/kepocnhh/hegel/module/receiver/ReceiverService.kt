@@ -10,6 +10,7 @@ import org.kepocnhh.hegel.entity.Session
 import org.kepocnhh.hegel.util.http.HttpRequest
 import org.kepocnhh.hegel.util.http.HttpResponse
 import org.kepocnhh.hegel.util.http.HttpService
+import org.kepocnhh.hegel.util.toHEX
 import sp.kx.storages.CommitInfo
 import sp.kx.storages.Described
 import sp.kx.storages.SyncInfo
@@ -95,12 +96,12 @@ internal class ReceiverService : HttpService(_state) {
             expires = System.currentTimeMillis().milliseconds + 1.minutes,
         )
         App.injection.locals.session = session
-        logger.debug("syncs: ${syncs.map { (storageId, info) -> storageId to info.infos.map { (id, i) -> id to i.hash } }}") // todo
-        val response = ItemsSyncResponse.NeedUpdate(
+        logger.debug("syncs: ${syncs.mapValues { (_, si) -> si.infos.mapValues { (_, ii) -> ii.hash.toHEX() } }}") // todo
+        val response = ItemsSyncResponse(
             sessionId = session.id,
             syncs = syncs,
         )
-        val body = App.injection.serializer.remote.needUpdate.encode(response)
+        val body = App.injection.serializer.remote.syncResponse.encode(response)
         return HttpResponse(
             code = 200,
             message = "OK",

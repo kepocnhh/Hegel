@@ -10,7 +10,7 @@ import org.kepocnhh.hegel.entity.ItemsSyncResponse
 internal interface Serializer {
     interface Remote {
         val syncRequest: Transformer<ItemsSyncRequest>
-        val needUpdate: Transformer<ItemsSyncResponse.NeedUpdate>
+        val syncResponse: Transformer<ItemsSyncResponse>
         val syncMerge: Transformer<ItemsSyncMergeRequest>
         val mergeResponse: Transformer<ItemsSyncMergeResponse>
     }

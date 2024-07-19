@@ -20,7 +20,7 @@ import sp.kx.storages.SyncInfo
 internal class JsonSerializer : Serializer {
     private fun ItemInfo.toJSONObject(): JSONObject {
         return JSONObject()
-            .put("hash", hash)
+            .put("hash", hash.base64())
             .put("created", created.inWholeMilliseconds)
             .put("updated", updated.inWholeMilliseconds)
     }
@@ -250,7 +250,7 @@ internal class JsonSerializer : Serializer {
 
     private fun CommitInfo.toJSONObject(): JSONObject {
         return JSONObject()
-            .put("hash", hash)
+            .put("hash", hash.base64())
             .put("deleted", deleted.strings { it.toString() })
             .put("items", items.objects { it.toJSONObject() })
     }
@@ -280,8 +280,8 @@ internal class JsonSerializer : Serializer {
             }
         }
 
-        override val needUpdate: Transformer<ItemsSyncResponse.NeedUpdate> = object : Transformer<ItemsSyncResponse.NeedUpdate> {
-            override fun encode(value: ItemsSyncResponse.NeedUpdate): ByteArray {
+        override val syncResponse: Transformer<ItemsSyncResponse> = object : Transformer<ItemsSyncResponse> {
+            override fun encode(value: ItemsSyncResponse): ByteArray {
                 return JSONObject()
                     .put("sessionId", value.sessionId.toString())
                     .put("syncs", value.syncs.toJSONObject(keys = UUID::toString, values = { it.toJSONObject() }))
@@ -289,9 +289,9 @@ internal class JsonSerializer : Serializer {
                     .toByteArray()
             }
 
-            override fun decode(bytes: ByteArray): ItemsSyncResponse.NeedUpdate {
+            override fun decode(bytes: ByteArray): ItemsSyncResponse {
                 val obj = JSONObject(String(bytes))
-                return ItemsSyncResponse.NeedUpdate(
+                return ItemsSyncResponse(
                     sessionId = UUID.fromString(obj.getString("sessionId")),
                     syncs = obj.getJSONObject("syncs").toMap(keys = UUID::fromString, values = { it.toStorageInfo() }),
                 )

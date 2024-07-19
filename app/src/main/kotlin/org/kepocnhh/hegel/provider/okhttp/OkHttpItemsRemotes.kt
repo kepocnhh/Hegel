@@ -7,8 +7,10 @@ import org.kepocnhh.hegel.entity.ItemsSyncMergeRequest
 import org.kepocnhh.hegel.entity.ItemsSyncMergeResponse
 import org.kepocnhh.hegel.entity.ItemsSyncRequest
 import org.kepocnhh.hegel.entity.ItemsSyncResponse
+import org.kepocnhh.hegel.entity.NotModifiedException
 import org.kepocnhh.hegel.provider.ItemsRemotes
 import org.kepocnhh.hegel.provider.Serializer
+import org.kepocnhh.hegel.util.toHEX
 import java.net.URL
 
 internal class OkHttpItemsRemotes(
@@ -27,9 +29,10 @@ internal class OkHttpItemsRemotes(
             when (response.code) {
                 200 -> {
                     val bytes = response.body?.bytes() ?: TODO()
-                    serializer.remote.needUpdate.decode(bytes)
+//                    println("on response sync: (${bytes.size})${bytes.toHEX()}") // todo
+                    serializer.remote.syncResponse.decode(bytes)
                 }
-                304 -> ItemsSyncResponse.NotModified
+                304 -> throw NotModifiedException()
                 else -> TODO("FinalRemotes:itemsSync:Unknown code ${response.code}!")
             }
         }
