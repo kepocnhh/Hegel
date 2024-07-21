@@ -1,7 +1,6 @@
 package org.kepocnhh.hegel
 
 import android.app.Application
-import androidx.activity.OnBackPressedDispatcher
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -11,7 +10,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalView
 import kotlinx.coroutines.Dispatchers
-import org.kepocnhh.hegel.entity.Session
 import org.kepocnhh.hegel.module.app.Injection
 import org.kepocnhh.hegel.provider.Contexts
 import org.kepocnhh.hegel.provider.EncryptedFileStorage
@@ -19,9 +17,7 @@ import org.kepocnhh.hegel.provider.FinalLocals
 import org.kepocnhh.hegel.provider.FinalLoggers
 import org.kepocnhh.hegel.provider.FinalRemotes
 import org.kepocnhh.hegel.provider.JsonSerializer
-import org.kepocnhh.hegel.provider.Locals
 import org.kepocnhh.hegel.provider.Serializer
-import org.kepocnhh.hegel.util.compose.LocalOnBackPressedDispatcher
 import org.kepocnhh.hegel.util.compose.toPaddings
 import sp.kx.logics.Logics
 import sp.kx.logics.LogicsFactory
@@ -43,11 +39,9 @@ internal class App : Application() {
 
         @Composable
         fun Composition(
-            onBackPressedDispatcher: OnBackPressedDispatcher,
             content: @Composable () -> Unit,
         ) {
             CompositionLocalProvider(
-                LocalOnBackPressedDispatcher provides onBackPressedDispatcher,
                 LocalInsets provides LocalView.current.rootWindowInsets.toPaddings(),
                 content = content,
             )

@@ -1,8 +1,8 @@
 package org.kepocnhh.hegel.module.router
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.IntOffset
@@ -25,14 +24,12 @@ import org.kepocnhh.hegel.module.main.MainScreen
 import org.kepocnhh.hegel.module.receiver.ReceiverScreen
 import org.kepocnhh.hegel.module.receiver.ReceiverService
 import org.kepocnhh.hegel.module.transmitter.TransmitterScreen
-import org.kepocnhh.hegel.util.compose.BackHandler
-import org.kepocnhh.hegel.util.http.HttpService
 import sp.kx.http.HttpReceiver
 import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 internal fun RouterScreen(onBack: () -> Unit) {
-    BackHandler(block = onBack)
+    BackHandler(onBack = onBack)
     Box(
         modifier = Modifier
             .fillMaxSize()

@@ -14,6 +14,7 @@ repositories {
 plugins {
     id("com.android.application")
     id("kotlin-android")
+    id("org.jetbrains.compose") version Version.compose
 }
 
 fun ComponentIdentity.getVersion(): String {
@@ -66,7 +67,7 @@ android {
         buildConfig = true
     }
 
-    composeOptions.kotlinCompilerExtensionVersion = Version.Android.compose
+    composeOptions.kotlinCompilerExtensionVersion = "1.5.14"
 
     productFlavors {
         "device".also { dimension ->
@@ -124,11 +125,12 @@ androidComponents.onVariants { variant ->
 }
 
 dependencies {
-    debugImplementation("androidx.compose.ui:ui-tooling:${Version.Android.compose}")
-    debugImplementation("androidx.compose.ui:ui-tooling-preview:${Version.Android.compose}")
+    debugImplementation("androidx.compose.ui:ui-tooling:${Version.compose}")
+    debugImplementation("androidx.compose.ui:ui-tooling-preview:${Version.compose}")
     debugImplementation("androidx.wear:wear-tooling-preview:1.0.0")
-    implementation("androidx.appcompat:appcompat:1.6.1")
-    implementation("androidx.compose.foundation:foundation:${Version.Android.compose}")
+    implementation("androidx.activity:activity-compose:1.9.0")
+    implementation("androidx.appcompat:appcompat:1.7.0")
+    implementation(compose.foundation)
     implementation("androidx.security:security-crypto:1.0.0")
     implementation("com.github.kepocnhh:HttpReceiver:0.0.2u-SNAPSHOT")
     implementation("com.github.kepocnhh:Logics:0.1.3-SNAPSHOT")

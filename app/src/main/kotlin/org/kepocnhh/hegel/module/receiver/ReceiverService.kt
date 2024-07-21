@@ -3,6 +3,7 @@ package org.kepocnhh.hegel.module.receiver
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
@@ -66,6 +67,14 @@ internal class ReceiverService : Service() {
     private fun onStartCommand(intent: Intent) {
         val intentAction = intent.action ?: error("No intent action!")
         if (intentAction.isBlank()) error("Intent action is blank!")
+        if (intentAction == "onDelete") {
+            // todo
+            logger.debug("on delete...")
+            coroutineScope.launch {
+                onState(receiver.states.value)
+            }
+            return
+        }
         val action = Action.entries.firstOrNull { it.name == intentAction } ?: error("No action!")
         when (action) {
             Action.Start -> onStartServer()
@@ -99,18 +108,19 @@ internal class ReceiverService : Service() {
         }
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-//        receiver.stop() // todo
-    }
-
     private fun buildNotification(
         context: Context,
         text: CharSequence,
     ): Notification {
+        val intent = Intent(this, ReceiverService::class.java)
+        intent.action = "onDelete"
+        val deleteIntent = PendingIntent.getService(this, 1, intent, PendingIntent.FLAG_IMMUTABLE)
         return NotificationCompat.Builder(context, NC_ID)
             .setSmallIcon(android.R.drawable.ic_popup_sync)
             .setContentText(text)
+            .setAutoCancel(false)
+            .setOngoing(true)
+            .setDeleteIntent(deleteIntent)
             .build()
     }
 

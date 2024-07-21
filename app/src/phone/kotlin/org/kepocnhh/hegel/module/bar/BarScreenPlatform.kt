@@ -1,5 +1,6 @@
 package org.kepocnhh.hegel.module.bar
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -18,7 +19,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import org.kepocnhh.hegel.App
-import org.kepocnhh.hegel.util.compose.BackHandler
 import java.util.Date
 import java.util.UUID
 
@@ -31,7 +31,7 @@ internal fun BarScreen(
     onAdd: () -> Unit,
     onUpdate: (UUID) -> Unit,
 ) {
-    BackHandler(block = onBack)
+    BackHandler(onBack = onBack)
     Box(
         modifier = Modifier
             .fillMaxSize()

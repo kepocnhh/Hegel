@@ -1,5 +1,6 @@
 package org.kepocnhh.hegel.module.receiver
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -20,8 +21,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import org.kepocnhh.hegel.App
-import org.kepocnhh.hegel.util.compose.BackHandler
-import org.kepocnhh.hegel.util.http.HttpService
 import sp.kx.http.HttpReceiver
 
 @Composable
