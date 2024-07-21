@@ -27,6 +27,7 @@ import org.kepocnhh.hegel.module.receiver.ReceiverService
 import org.kepocnhh.hegel.module.transmitter.TransmitterScreen
 import org.kepocnhh.hegel.util.compose.BackHandler
 import org.kepocnhh.hegel.util.http.HttpService
+import sp.kx.http.HttpReceiver
 import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
@@ -38,8 +39,8 @@ internal fun RouterScreen(onBack: () -> Unit) {
             .background(Color.White),
     ) {
         val state = remember {
-            val value = when (ReceiverService.state.value) {
-                is HttpService.State.Stopped -> null
+            val value = when (ReceiverService.states.value) {
+                is HttpReceiver.State.Stopped -> null
                 else -> MainScreen.State.Receiver
             }
             mutableStateOf<MainScreen.State?>(value)

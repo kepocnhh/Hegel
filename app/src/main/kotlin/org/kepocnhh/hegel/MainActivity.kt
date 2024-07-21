@@ -11,6 +11,7 @@ internal class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         val view = ComposeView(this)
         setContentView(view)
+        // todo post notifications
         view.setContent {
             App.Theme.Composition(
                 onBackPressedDispatcher = onBackPressedDispatcher,
