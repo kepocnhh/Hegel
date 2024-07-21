@@ -7,7 +7,6 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
-import android.content.pm.ServiceInfo
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import kotlinx.coroutines.CoroutineScope
@@ -15,13 +14,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.kepocnhh.hegel.App
 import org.kepocnhh.hegel.BuildConfig
-import org.kepocnhh.hegel.entity.ItemsSyncMergeRequest
-import org.kepocnhh.hegel.entity.ItemsSyncMergeResponse
+import org.kepocnhh.hegel.entity.ItemsMergeRequest
+import org.kepocnhh.hegel.entity.ItemsMergeResponse
 import org.kepocnhh.hegel.entity.ItemsSyncResponse
 import org.kepocnhh.hegel.entity.Session
 import org.kepocnhh.hegel.util.http.HttpRequest
@@ -29,9 +27,6 @@ import org.kepocnhh.hegel.util.http.HttpResponse
 import org.kepocnhh.hegel.util.http.HttpService
 import org.kepocnhh.hegel.util.toHEX
 import sp.kx.http.HttpReceiver
-import sp.kx.storages.CommitInfo
-import sp.kx.storages.Described
-import sp.kx.storages.SyncInfo
 import java.util.UUID
 import kotlin.math.absoluteValue
 import kotlin.time.Duration.Companion.milliseconds
@@ -175,7 +170,7 @@ internal class ReceiverServiceOld : HttpService(_state) {
         ),
     )
 
-    private fun onItemsMerge(request: ItemsSyncMergeRequest): HttpResponse {
+    private fun onItemsMerge(request: ItemsMergeRequest): HttpResponse {
         val oldSession = App.injection.locals.session
         if (oldSession == null) {
             return HttpResponse(
@@ -197,7 +192,7 @@ internal class ReceiverServiceOld : HttpService(_state) {
             )
         }
         val commits = App.injection.storages.merge(infos = request.merges)
-        val response = ItemsSyncMergeResponse(commits = commits)
+        val response = ItemsMergeResponse(commits = commits)
         App.injection.locals.session = null
         val body = App.injection.serializer.remote.mergeResponse.encode(response)
         return HttpResponse(
@@ -214,7 +209,7 @@ internal class ReceiverServiceOld : HttpService(_state) {
     private fun onPostItemsMerge(request: HttpRequest): HttpResponse {
         logger.debug("on post items merge...")
         val bytes = request.body ?: TODO()
-        return onItemsMerge(App.injection.serializer.remote.syncMerge.decode(bytes))
+        return onItemsMerge(App.injection.serializer.remote.mergeRequest.decode(bytes))
     }
 
     private fun onItemsSync(hashes: Map<UUID, ByteArray>): HttpResponse {

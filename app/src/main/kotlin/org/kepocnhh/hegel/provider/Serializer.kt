@@ -2,8 +2,8 @@ package org.kepocnhh.hegel.provider
 
 import org.kepocnhh.hegel.entity.Bar
 import org.kepocnhh.hegel.entity.Foo
-import org.kepocnhh.hegel.entity.ItemsSyncMergeRequest
-import org.kepocnhh.hegel.entity.ItemsSyncMergeResponse
+import org.kepocnhh.hegel.entity.ItemsMergeRequest
+import org.kepocnhh.hegel.entity.ItemsMergeResponse
 import org.kepocnhh.hegel.entity.ItemsSyncRequest
 import org.kepocnhh.hegel.entity.ItemsSyncResponse
 
@@ -11,8 +11,8 @@ internal interface Serializer {
     interface Remote {
         val syncRequest: Transformer<ItemsSyncRequest>
         val syncResponse: Transformer<ItemsSyncResponse>
-        val syncMerge: Transformer<ItemsSyncMergeRequest>
-        val mergeResponse: Transformer<ItemsSyncMergeResponse>
+        val mergeRequest: Transformer<ItemsMergeRequest>
+        val mergeResponse: Transformer<ItemsMergeResponse>
     }
 
     val foo: Transformer<Foo>

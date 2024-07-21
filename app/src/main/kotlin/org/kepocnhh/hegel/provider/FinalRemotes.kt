@@ -1,12 +1,6 @@
 package org.kepocnhh.hegel.provider
 
 import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
-import org.kepocnhh.hegel.entity.ItemsSyncMergeRequest
-import org.kepocnhh.hegel.entity.ItemsSyncMergeResponse
-import org.kepocnhh.hegel.entity.ItemsSyncRequest
-import org.kepocnhh.hegel.entity.ItemsSyncResponse
 import org.kepocnhh.hegel.provider.okhttp.OkHttpItemsRemotes
 import java.net.URL
 import java.util.concurrent.TimeUnit

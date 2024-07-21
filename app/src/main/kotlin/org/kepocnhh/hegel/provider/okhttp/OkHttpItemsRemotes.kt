@@ -3,14 +3,13 @@ package org.kepocnhh.hegel.provider.okhttp
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import org.kepocnhh.hegel.entity.ItemsSyncMergeRequest
-import org.kepocnhh.hegel.entity.ItemsSyncMergeResponse
+import org.kepocnhh.hegel.entity.ItemsMergeRequest
+import org.kepocnhh.hegel.entity.ItemsMergeResponse
 import org.kepocnhh.hegel.entity.ItemsSyncRequest
 import org.kepocnhh.hegel.entity.ItemsSyncResponse
 import org.kepocnhh.hegel.entity.NotModifiedException
 import org.kepocnhh.hegel.provider.ItemsRemotes
 import org.kepocnhh.hegel.provider.Serializer
-import org.kepocnhh.hegel.util.toHEX
 import java.net.URL
 
 internal class OkHttpItemsRemotes(
@@ -38,12 +37,12 @@ internal class OkHttpItemsRemotes(
         }
     }
 
-    override fun merge(request: ItemsSyncMergeRequest): ItemsSyncMergeResponse {
+    override fun merge(request: ItemsMergeRequest): ItemsMergeResponse {
         return client.newCall(
             Request.Builder()
                 .url(URL(url, "v1/items/merge"))
                 .header("Content-Type", "application/json")
-                .post(serializer.remote.syncMerge.encode(request).toRequestBody())
+                .post(serializer.remote.mergeRequest.encode(request).toRequestBody())
                 .build()
         ).execute().use { response ->
             when (response.code) {

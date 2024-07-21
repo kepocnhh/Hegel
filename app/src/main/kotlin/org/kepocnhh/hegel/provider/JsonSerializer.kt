@@ -4,8 +4,8 @@ import org.json.JSONArray
 import org.json.JSONObject
 import org.kepocnhh.hegel.entity.Bar
 import org.kepocnhh.hegel.entity.Foo
-import org.kepocnhh.hegel.entity.ItemsSyncMergeRequest
-import org.kepocnhh.hegel.entity.ItemsSyncMergeResponse
+import org.kepocnhh.hegel.entity.ItemsMergeRequest
+import org.kepocnhh.hegel.entity.ItemsMergeResponse
 import org.kepocnhh.hegel.entity.ItemsSyncRequest
 import org.kepocnhh.hegel.entity.ItemsSyncResponse
 import sp.kx.storages.CommitInfo
@@ -298,8 +298,8 @@ internal class JsonSerializer : Serializer {
             }
         }
 
-        override val syncMerge: Transformer<ItemsSyncMergeRequest> = object : Transformer<ItemsSyncMergeRequest> {
-            override fun encode(value: ItemsSyncMergeRequest): ByteArray {
+        override val mergeRequest: Transformer<ItemsMergeRequest> = object : Transformer<ItemsMergeRequest> {
+            override fun encode(value: ItemsMergeRequest): ByteArray {
                 val merges = value.merges.toJSONObject(
                     keys = UUID::toString,
                     values = { it.toJSONObject() },
@@ -311,7 +311,7 @@ internal class JsonSerializer : Serializer {
                     .toByteArray()
             }
 
-            override fun decode(bytes: ByteArray): ItemsSyncMergeRequest {
+            override fun decode(bytes: ByteArray): ItemsMergeRequest {
                 val obj = JSONObject(String(bytes))
                 val merges = obj
                     .getJSONObject("merges")
@@ -319,15 +319,15 @@ internal class JsonSerializer : Serializer {
                         keys = UUID::fromString,
                         values = { it.toMergeInfo() },
                     )
-                return ItemsSyncMergeRequest(
+                return ItemsMergeRequest(
                     sessionId = UUID.fromString(obj.getString("sessionId")),
                     merges = merges,
                 )
             }
         }
 
-        override val mergeResponse: Transformer<ItemsSyncMergeResponse> = object : Transformer<ItemsSyncMergeResponse> {
-            override fun encode(value: ItemsSyncMergeResponse): ByteArray {
+        override val mergeResponse: Transformer<ItemsMergeResponse> = object : Transformer<ItemsMergeResponse> {
+            override fun encode(value: ItemsMergeResponse): ByteArray {
                 val commits = value.commits.toJSONObject(
                     keys = UUID::toString,
                     values = { it.toJSONObject() },
@@ -338,13 +338,13 @@ internal class JsonSerializer : Serializer {
                     .toByteArray()
             }
 
-            override fun decode(bytes: ByteArray): ItemsSyncMergeResponse {
+            override fun decode(bytes: ByteArray): ItemsMergeResponse {
                 val obj = JSONObject(String(bytes))
                 val commits = obj.getJSONObject("commits").toMap(
                     keys = UUID::fromString,
                     values = { it.toCommitInfo() },
                 )
-                return ItemsSyncMergeResponse(
+                return ItemsMergeResponse(
                     commits = commits,
                 )
             }

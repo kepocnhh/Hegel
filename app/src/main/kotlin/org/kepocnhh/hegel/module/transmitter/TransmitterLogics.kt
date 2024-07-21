@@ -5,8 +5,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
-import org.kepocnhh.hegel.entity.ItemsSyncMergeRequest
-import org.kepocnhh.hegel.entity.ItemsSyncMergeResponse
+import org.kepocnhh.hegel.entity.ItemsMergeRequest
+import org.kepocnhh.hegel.entity.ItemsMergeResponse
 import org.kepocnhh.hegel.entity.ItemsSyncRequest
 import org.kepocnhh.hegel.entity.ItemsSyncResponse
 import org.kepocnhh.hegel.entity.NotModifiedException
@@ -39,7 +39,7 @@ internal class TransmitterLogics(
     private val _broadcast = MutableSharedFlow<Broadcast>()
     val broadcast = _broadcast.asSharedFlow()
 
-    private suspend fun itemsMerge(response: ItemsSyncMergeResponse) {
+    private suspend fun itemsMerge(response: ItemsMergeResponse) {
         logger.debug("items merge...")
         withContext(injection.contexts.default) {
             injection.storages.commit(infos = response.commits)
@@ -56,7 +56,7 @@ internal class TransmitterLogics(
         }
         withContext(injection.contexts.default) {
             runCatching {
-                val request = ItemsSyncMergeRequest(
+                val request = ItemsMergeRequest(
                     sessionId = response.sessionId,
                     merges = merges,
                 )
