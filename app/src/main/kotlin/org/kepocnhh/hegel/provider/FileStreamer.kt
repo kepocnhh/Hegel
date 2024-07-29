@@ -17,7 +17,7 @@ internal class FileStreamer(
         check(dir.isDirectory)
         val file = File(dir, "$id-$inputPointer")
         if (!file.exists() || file.length() == 0L) {
-            file.writeBytes(ByteArray(8))
+            file.writeBytes(ByteArray(12))
         }
         return file.inputStream()
     }
