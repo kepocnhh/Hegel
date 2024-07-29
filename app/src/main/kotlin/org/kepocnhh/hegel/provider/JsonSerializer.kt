@@ -16,6 +16,7 @@ import kotlin.time.Duration.Companion.milliseconds
 import sp.kx.storages.ItemInfo
 import sp.kx.storages.MergeInfo
 import sp.kx.storages.SyncInfo
+import sp.kx.storages.Transformer
 
 internal class JsonSerializer : Serializer {
     private fun ItemInfo.toJSONObject(): JSONObject {

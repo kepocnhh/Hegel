@@ -8,6 +8,7 @@ import org.kepocnhh.hegel.module.app.Injection
 import sp.kx.logics.Logics
 import sp.kx.storages.Described
 import sp.kx.storages.MutableStorage
+import sp.kx.storages.require
 import java.util.UUID
 
 internal class FooLogics(

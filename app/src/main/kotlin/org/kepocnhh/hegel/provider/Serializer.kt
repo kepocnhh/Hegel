@@ -6,6 +6,7 @@ import org.kepocnhh.hegel.entity.ItemsMergeRequest
 import org.kepocnhh.hegel.entity.ItemsMergeResponse
 import org.kepocnhh.hegel.entity.ItemsSyncRequest
 import org.kepocnhh.hegel.entity.ItemsSyncResponse
+import sp.kx.storages.Transformer
 
 internal interface Serializer {
     interface Remote {

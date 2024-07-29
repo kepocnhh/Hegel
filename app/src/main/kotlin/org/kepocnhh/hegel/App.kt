@@ -12,11 +12,12 @@ import androidx.compose.ui.platform.LocalView
 import kotlinx.coroutines.Dispatchers
 import org.kepocnhh.hegel.module.app.Injection
 import org.kepocnhh.hegel.provider.Contexts
-import org.kepocnhh.hegel.provider.EncryptedFileStorage
+import org.kepocnhh.hegel.provider.FileStreamerProvider
 import org.kepocnhh.hegel.provider.FinalLocals
 import org.kepocnhh.hegel.provider.FinalLoggers
 import org.kepocnhh.hegel.provider.FinalRemotes
 import org.kepocnhh.hegel.provider.JsonSerializer
+import org.kepocnhh.hegel.provider.MDHashFunction
 import org.kepocnhh.hegel.provider.Serializer
 import org.kepocnhh.hegel.util.compose.toPaddings
 import sp.kx.logics.Logics
@@ -25,8 +26,11 @@ import sp.kx.logics.LogicsProvider
 import sp.kx.logics.contains
 import sp.kx.logics.get
 import sp.kx.logics.remove
-import sp.kx.storages.SyncStorages
+import sp.kx.storages.SyncStreamsStorage
+import sp.kx.storages.SyncStreamsStorages
 import java.util.UUID
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 
 internal class App : Application() {
     object Theme {
@@ -51,6 +55,26 @@ internal class App : Application() {
     override fun onCreate() {
         super.onCreate()
         val serializer: Serializer = JsonSerializer()
+        val hf = MDHashFunction("MD5")
+        val env = object : SyncStreamsStorage.Environment {
+            override fun now(): Duration {
+                return System.currentTimeMillis().milliseconds
+            }
+
+            override fun randomUUID(): UUID {
+                return UUID.randomUUID()
+            }
+        }
+        val storages = SyncStreamsStorages.Builder()
+            .add(UUID.fromString("84e44670-d301-471b-a7ac-dfd8b1e55554"), serializer.foo)
+            .add(UUID.fromString("6c7a0b49-89e9-45ee-945c-0faad06a3df7"), serializer.bar)
+            .build(
+                hf = hf,
+                env = env,
+                getStreamerProvider = { ids: Set<UUID> ->
+                    FileStreamerProvider(dir = filesDir, ids = ids)
+                },
+            )
         _injection = Injection(
             contexts = Contexts(
                 main = Dispatchers.Main,
@@ -58,22 +82,7 @@ internal class App : Application() {
             ),
             loggers = FinalLoggers,
             locals = FinalLocals(context = this),
-            storages = SyncStorages.Builder()
-                .add(
-                    EncryptedFileStorage(
-                        id = UUID.fromString("84e44670-d301-471b-a7ac-dfd8b1e55554"),
-                        context = this,
-                        transformer = serializer.foo,
-                    ),
-                )
-                .add(
-                    EncryptedFileStorage(
-                        id = UUID.fromString("6c7a0b49-89e9-45ee-945c-0faad06a3df7"),
-                        context = this,
-                        transformer = serializer.bar,
-                    ),
-                )
-                .build(),
+            storages = storages,
             remotes = FinalRemotes(serializer = serializer),
             serializer = serializer,
         )
