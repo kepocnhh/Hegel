@@ -12,7 +12,6 @@ import androidx.compose.ui.platform.LocalView
 import kotlinx.coroutines.Dispatchers
 import org.kepocnhh.hegel.module.app.Injection
 import org.kepocnhh.hegel.provider.Contexts
-import org.kepocnhh.hegel.provider.FileStreamerProvider
 import org.kepocnhh.hegel.provider.FinalLocals
 import org.kepocnhh.hegel.provider.FinalLoggers
 import org.kepocnhh.hegel.provider.FinalRemotes
@@ -71,9 +70,7 @@ internal class App : Application() {
             .build(
                 hf = hf,
                 env = env,
-                getStreamerProvider = { ids: Set<UUID> ->
-                    FileStreamerProvider(dir = filesDir, ids = ids)
-                },
+                dir = filesDir,
             )
         _injection = Injection(
             contexts = Contexts(
