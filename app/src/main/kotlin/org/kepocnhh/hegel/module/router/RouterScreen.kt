@@ -12,17 +12,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import org.kepocnhh.hegel.App
 import org.kepocnhh.hegel.module.auth.AuthScreen
+import org.kepocnhh.hegel.module.bar.BarScreen
 import org.kepocnhh.hegel.module.enter.EnterScreen
+import org.kepocnhh.hegel.module.foo.FooScreen
 import org.kepocnhh.hegel.module.main.MainScreen
+import org.kepocnhh.hegel.module.receiver.ReceiverScreen
+import org.kepocnhh.hegel.module.transmitter.TransmitterScreen
 
 @Composable
 internal fun RouterScreen(onLock: () -> Unit) {
     val state = remember { mutableStateOf<MainScreen.State?>(null) }
     when (state.value) {
-        MainScreen.State.Foo -> TODO()
-        MainScreen.State.Bar -> TODO()
-        MainScreen.State.Receiver -> TODO()
-        MainScreen.State.Transmitter -> TODO()
+        MainScreen.State.Foo -> FooScreen(onBack = { state.value = null })
+        MainScreen.State.Bar -> BarScreen(onBack = { state.value = null })
+        MainScreen.State.Receiver -> ReceiverScreen(onBack = { state.value = null })
+        MainScreen.State.Transmitter -> TransmitterScreen(onBack = { state.value = null })
         null -> MainScreen(
             onState = {
                 state.value = it
