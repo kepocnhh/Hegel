@@ -14,11 +14,18 @@ import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import org.kepocnhh.hegel.App
 import org.kepocnhh.hegel.util.compose.Button
+import org.kepocnhh.hegel.util.toHEX
 
 @Composable
 internal fun MainScreen(
@@ -26,6 +33,11 @@ internal fun MainScreen(
     onLock: () -> Unit,
 ) {
     val insets = WindowInsets.systemBars.asPaddingValues()
+    val logics = App.logics<MainLogics>()
+    val state = logics.states.collectAsState().value
+    LaunchedEffect(Unit) {
+        if (state == null) logics.requestState()
+    }
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -51,6 +63,17 @@ internal fun MainScreen(
             .fillMaxSize()
             .padding(insets),
     ) {
+        val publicKeyHash = state?.publicKeyHash?.toHEX()?.let { text ->
+            text.slice(0 until text.length / 2) + "\n" + text.slice(text.length / 2 until text.length)
+        }
+        BasicText(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .wrapContentSize(),
+            text = publicKeyHash.orEmpty(),
+            style = TextStyle(fontFamily = FontFamily.Monospace, textAlign = TextAlign.Center),
+        )
         BasicText(
             modifier = Modifier
                 .fillMaxWidth()
