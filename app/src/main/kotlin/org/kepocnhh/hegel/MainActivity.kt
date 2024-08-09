@@ -11,13 +11,7 @@ internal class MainActivity : AppCompatActivity() {
         val view = ComposeView(this)
         setContentView(view)
         view.setContent {
-            App.Theme.Composition {
-                RouterScreen(
-                    onBack = {
-                        finish()
-                    },
-                )
-            }
+            RouterScreen()
         }
     }
 }

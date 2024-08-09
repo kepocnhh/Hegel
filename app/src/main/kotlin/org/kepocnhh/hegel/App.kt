@@ -12,12 +12,15 @@ import androidx.compose.ui.platform.LocalView
 import kotlinx.coroutines.Dispatchers
 import org.kepocnhh.hegel.module.app.Injection
 import org.kepocnhh.hegel.provider.Contexts
+import org.kepocnhh.hegel.provider.FinalAssets
 import org.kepocnhh.hegel.provider.FinalLocals
 import org.kepocnhh.hegel.provider.FinalLoggers
 import org.kepocnhh.hegel.provider.FinalRemotes
+import org.kepocnhh.hegel.provider.FinalSecrets
 import org.kepocnhh.hegel.provider.JsonSerializer
 import org.kepocnhh.hegel.provider.MDHashFunction
 import org.kepocnhh.hegel.provider.Serializer
+import org.kepocnhh.hegel.provider.Sessions
 import org.kepocnhh.hegel.util.compose.toPaddings
 import sp.kx.logics.Logics
 import sp.kx.logics.LogicsFactory
@@ -32,25 +35,6 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
 internal class App : Application() {
-    object Theme {
-        private val LocalInsets = staticCompositionLocalOf<PaddingValues> { error("No insets!") }
-
-        val insets: PaddingValues
-            @Composable
-            @ReadOnlyComposable
-            get() = LocalInsets.current
-
-        @Composable
-        fun Composition(
-            content: @Composable () -> Unit,
-        ) {
-            CompositionLocalProvider(
-                LocalInsets provides LocalView.current.rootWindowInsets.toPaddings(),
-                content = content,
-            )
-        }
-    }
-
     override fun onCreate() {
         super.onCreate()
         val serializer: Serializer = JsonSerializer()
@@ -72,16 +56,21 @@ internal class App : Application() {
                 env = env,
                 dir = filesDir,
             )
+        val secrets = FinalSecrets()
+        val sessions = Sessions()
         _injection = Injection(
             contexts = Contexts(
                 main = Dispatchers.Main,
                 default = Dispatchers.Default,
             ),
             loggers = FinalLoggers,
-            locals = FinalLocals(context = this),
+            locals = FinalLocals(context = this, secrets = secrets),
             storages = storages,
             remotes = FinalRemotes(serializer = serializer),
             serializer = serializer,
+            sessions = sessions,
+            assets = FinalAssets(context = this),
+            secrets = secrets,
         )
     }
 
