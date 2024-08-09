@@ -128,7 +128,7 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling:${Version.compose}")
     debugImplementation("androidx.compose.ui:ui-tooling-preview:${Version.compose}")
     debugImplementation("androidx.wear:wear-tooling-preview:1.0.0")
-    implementation("androidx.activity:activity-compose:1.9.0")
+    implementation("androidx.activity:activity-compose:1.9.1")
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation(compose.foundation)
     implementation("androidx.security:security-crypto:1.0.0")
