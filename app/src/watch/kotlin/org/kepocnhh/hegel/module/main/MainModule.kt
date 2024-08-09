@@ -15,7 +15,10 @@ import androidx.compose.ui.unit.dp
 import org.kepocnhh.hegel.util.compose.ListPlatform
 
 @Composable
-internal fun MainScreen(onState: (MainScreen.State) -> Unit) {
+internal fun MainScreen(
+    onState: (MainScreen.State) -> Unit,
+    onLock: () -> Unit,
+) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -37,6 +40,16 @@ internal fun MainScreen(onState: (MainScreen.State) -> Unit) {
                         text = state.name,
                     )
                 }
+            }
+            item(key = "lock") {
+                BasicText(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(36.dp)
+                        .clickable(onClick = onLock)
+                        .wrapContentSize(),
+                    text = "lock",
+                )
             }
         }
     }

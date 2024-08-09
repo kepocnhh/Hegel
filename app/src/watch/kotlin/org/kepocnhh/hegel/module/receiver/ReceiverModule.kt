@@ -16,32 +16,33 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import org.kepocnhh.hegel.util.compose.STDBox
-import org.kepocnhh.hegel.util.http.HttpService
+import sp.kx.http.HttpReceiver
 
 @Composable
 internal fun ReceiverScreen(
     onBack: () -> Unit,
-    state: HttpService.State,
+    state: HttpReceiver.State,
 ) {
     val context = LocalContext.current
     STDBox(
         modifier = Modifier.fillMaxSize(),
         userSwipeEnabled = when (state) {
-            is HttpService.State.Started -> true
-            is HttpService.State.Stopped -> true
+            is HttpReceiver.State.Started -> false
+            is HttpReceiver.State.Stopped -> !state.starting
             else -> false
         },
         onDismissed = {
-            when (ReceiverService.state.value) {
-                is HttpService.State.Started -> {
-                    HttpService.startService<ReceiverService>(
-                        context,
-                        HttpService.Action.StopServer,
-                    )
+            when (val _state = ReceiverService.states.value) {
+                is HttpReceiver.State.Started -> {
+                    if (!_state.stopping) {
+                        ReceiverService.startService(context, ReceiverService.Action.Stop)
+                    }
                     onBack()
                 }
-                is HttpService.State.Stopped -> {
-                    onBack()
+                is HttpReceiver.State.Stopped -> {
+                    if (!_state.starting) {
+                        onBack()
+                    }
                 }
                 else -> {
                     // noop
@@ -54,12 +55,19 @@ internal fun ReceiverScreen(
                 .fillMaxSize()
                 .background(Color.White),
         ) {
+            if (state is HttpReceiver.State.Started) {
+                BasicText(
+                    modifier = Modifier
+                        .align(Alignment.Center),
+                    text = "${state.host}:${state.port}",
+                )
+            }
             when (state) {
-                is HttpService.State.Started -> {
+                is HttpReceiver.State.Started -> {
                     BasicText(
                         modifier = Modifier
                             .align(Alignment.Center),
-                        text = state.address,
+                        text = "${state.host}:${state.port}",
                     )
                 }
                 else -> {
@@ -67,13 +75,13 @@ internal fun ReceiverScreen(
                 }
             }
             val text = when (state) {
-                is HttpService.State.Started -> "stop"
-                is HttpService.State.Stopped -> "start"
+                is HttpReceiver.State.Started -> "stop"
+                is HttpReceiver.State.Stopped -> "start"
                 else -> ""
             }
             val enabled = when (state) {
-                is HttpService.State.Started -> true
-                is HttpService.State.Stopped -> true
+                is HttpReceiver.State.Started -> !state.stopping
+                is HttpReceiver.State.Stopped -> !state.starting
                 else -> false
             }
             BasicText(
@@ -84,20 +92,16 @@ internal fun ReceiverScreen(
                     .background(Color.Black.copy(alpha = 0.5f))
                     .clickable(enabled = enabled) {
                         when (state) {
-                            is HttpService.State.Started -> {
-                                HttpService.startService<ReceiverService>(
-                                    context,
-                                    HttpService.Action.StopServer,
-                                )
+                            is HttpReceiver.State.Started -> {
+                                if (!state.stopping) {
+                                    ReceiverService.startService(context, ReceiverService.Action.Stop)
+                                }
                             }
-
-                            is HttpService.State.Stopped -> {
-                                HttpService.startService<ReceiverService>(
-                                    context,
-                                    HttpService.Action.StartServer,
-                                )
+                            is HttpReceiver.State.Stopped -> {
+                                if (!state.starting) {
+                                    ReceiverService.startService(context, ReceiverService.Action.Start)
+                                }
                             }
-
                             else -> {
                                 // noop
                             }

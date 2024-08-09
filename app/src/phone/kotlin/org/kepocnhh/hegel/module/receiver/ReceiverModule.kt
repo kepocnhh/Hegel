@@ -23,7 +23,6 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import org.kepocnhh.hegel.App
 import sp.kx.http.HttpReceiver
 
 @Composable
