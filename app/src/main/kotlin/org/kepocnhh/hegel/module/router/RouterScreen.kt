@@ -57,9 +57,7 @@ internal fun RouterScreen() {
                     onExit = logics::exit,
                 )
             }
-            RouterLogics.State.NoKeys -> {
-                AuthScreen(onAuth = logics::auth)
-            }
+            RouterLogics.State.NoKeys -> AuthScreen(onAuth = logics::auth)
         }
     }
 }
