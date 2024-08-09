@@ -45,13 +45,13 @@ internal class FinalSecrets : Secrets {
     }
 
     override fun encrypt(secretKey: SecretKey, decrypted: ByteArray): ByteArray {
-        val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
+        val cipher = Cipher.getInstance("AES")
         cipher.init(Cipher.ENCRYPT_MODE, secretKey)
         return cipher.doFinal(decrypted)
     }
 
     override fun decrypt(secretKey: SecretKey, encrypted: ByteArray): ByteArray {
-        val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
+        val cipher = Cipher.getInstance("AES")
         cipher.init(Cipher.DECRYPT_MODE, secretKey)
         return cipher.doFinal(encrypted)
     }

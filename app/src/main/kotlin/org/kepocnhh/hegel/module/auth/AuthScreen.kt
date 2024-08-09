@@ -34,8 +34,9 @@ import java.security.PrivateKey
 internal fun AuthScreen(
     onAuth: (Keys, PrivateKey) -> Unit,
 ) {
-    val insets = WindowInsets.systemBars.asPaddingValues()
     val context = LocalContext.current
+    val logger = remember { App.injection.loggers.create("[Auth]") }
+    val insets = WindowInsets.systemBars.asPaddingValues()
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -50,6 +51,7 @@ internal fun AuthScreen(
                             onAuth(keys, privateKey)
                         },
                         onFailure = { error ->
+                            logger.warning("auth error: $error")
                             context.showToast("auth error: $error")
                         },
                     )
