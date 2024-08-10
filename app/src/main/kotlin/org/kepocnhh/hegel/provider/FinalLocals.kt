@@ -8,6 +8,7 @@ import org.kepocnhh.hegel.entity.Keys
 import org.kepocnhh.hegel.entity.Session
 import java.net.URL
 import java.util.UUID
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
 internal class FinalLocals(
@@ -90,6 +91,22 @@ internal class FinalLocals(
                     .putString("keys:publicKey", value.publicKey.encoded)
                     .putString("keys:privateKeyEncrypted", value.privateKeyEncrypted)
                     .commit()
+            }
+        }
+
+    override var requested: Map<UUID, Duration>
+        get() {
+            return prefs.getStringSet("requested", null)?.associate {
+                val split = it.split(",")
+                check(split.size == 2)
+                UUID.fromString(split[0]) to split[1].toLong().milliseconds
+            }.orEmpty()
+        }
+        set(value) {
+            if (value.isEmpty()) {
+                prefs.edit().remove("requested").commit()
+            } else {
+                prefs.edit().putStringSet("requested", value.map { (id, time) -> "$id,${time.inWholeMilliseconds}" }.toSet()).commit()
             }
         }
 

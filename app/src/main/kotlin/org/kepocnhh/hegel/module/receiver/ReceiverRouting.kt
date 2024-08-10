@@ -1,22 +1,26 @@
 package org.kepocnhh.hegel.module.receiver
 
+import org.kepocnhh.hegel.entity.ItemsMergeRequest
 import org.kepocnhh.hegel.entity.ItemsMergeResponse
+import org.kepocnhh.hegel.entity.ItemsSyncRequest
 import org.kepocnhh.hegel.entity.ItemsSyncResponse
 import org.kepocnhh.hegel.entity.Session
 import org.kepocnhh.hegel.module.app.Injection
 import org.kepocnhh.hegel.util.toHEX
 import sp.kx.http.HttpRequest
 import sp.kx.http.HttpResponse
-import sp.kx.http.HttpRouting
+import sp.kx.http.TLSResponse
+import sp.kx.http.TLSRouting
 import java.util.UUID
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
 
 internal class ReceiverRouting(
     private val injection: Injection,
-) : HttpRouting {
+) : TLSRouting(injection.tls) {
     private val logger = injection.loggers.create("[Receiver|Routing]")
-    private val mapping = mapOf(
+    private val mapping = mapOf<String, Map<String, (HttpRequest) -> HttpResponse>>(
         "/v1/items/sync" to mapOf(
             "POST" to ::onPostItemsSync,
         ),
@@ -25,26 +29,31 @@ internal class ReceiverRouting(
         ),
     )
 
+    override var requested: Map<UUID, Duration>
+        get() {
+            return injection.locals.requested
+        }
+        set(value) {
+            injection.locals.requested = value
+        }
+
     private fun onPostItemsSync(request: HttpRequest): HttpResponse {
         logger.debug("on post items sync...")
-        val requestBody = request.body ?: return HttpResponse(
-            version = "1.1",
-            code = 500,
-            message = "Internal Server Error",
-            headers = emptyMap(),
-            body = "todo".toByteArray(),
-        )
-        val syncRequest = injection.serializer.remote.syncRequest.decode(requestBody)
+        return map(request) {
+            val syncRequest = injection.serializer.remote.syncRequest.decode(it)
+            onPostItemsSync(syncRequest = syncRequest)
+        }
+    }
+
+    private fun onPostItemsSync(syncRequest: ItemsSyncRequest): TLSResponse {
         val oldSession = injection.locals.session
         val now = System.currentTimeMillis().milliseconds
         if (oldSession != null) {
             if (oldSession.expires > now) {
-                return HttpResponse(
-                    version = "1.1",
+                return TLSResponse(
                     code = 500,
                     message = "Internal Server Error",
-                    headers = emptyMap(),
-                    body = "todo".toByteArray(),
+                    encoded = "todo".toByteArray(),
                 )
             }
             injection.locals.session = null
@@ -52,13 +61,7 @@ internal class ReceiverRouting(
         val syncs = injection.storages.getSyncInfo(syncRequest.hashes)
         if (syncs.isEmpty()) {
             logger.debug("not modified")
-            return HttpResponse(
-                version = "1.1",
-                code = 304,
-                message = "Not Modified",
-                headers = emptyMap(),
-                body = null,
-            )
+            return TLSResponse.NotModified()
         }
         val session = Session(
             id = UUID.randomUUID(),
@@ -70,71 +73,48 @@ internal class ReceiverRouting(
             sessionId = session.id,
             syncs = syncs,
         )
-        val responseBody = injection.serializer.remote.syncResponse.encode(response)
-        return HttpResponse(
-            version = "1.1",
-            code = 200,
-            message = "OK",
-            headers = mapOf(
-                "Content-Type" to "application/json",
-                "Content-Length" to responseBody.size.toString(),
-            ),
-            body = responseBody,
+        return TLSResponse.OK(
+            encoded = injection.serializer.remote.syncResponse.encode(response),
         )
     }
 
     private fun onPostItemsMerge(request: HttpRequest): HttpResponse {
         logger.debug("on post items merge...")
-        val requestBody = request.body ?: return HttpResponse(
-            version = "1.1",
-            code = 500,
-            message = "Internal Server Error",
-            headers = emptyMap(),
-            body = "todo".toByteArray(),
-        )
-        val mergeRequest = injection.serializer.remote.mergeRequest.decode(requestBody)
+        return map(request) {
+            val mergeRequest = injection.serializer.remote.mergeRequest.decode(it)
+            onPostItemsMerge(mergeRequest = mergeRequest)
+        }
+    }
+
+    private fun onPostItemsMerge(mergeRequest: ItemsMergeRequest): TLSResponse {
         val oldSession = injection.locals.session
         val now = System.currentTimeMillis().milliseconds
         if (oldSession == null) {
-            return HttpResponse(
-                version = "1.1",
+            return TLSResponse(
                 code = 500,
                 message = "Internal Server Error",
-                headers = mapOf("message" to "No session!"),
-                body = "todo".toByteArray(),
+                encoded = "todo".toByteArray(),
             )
         }
         if (oldSession.id != mergeRequest.sessionId) {
-            return HttpResponse(
-                version = "1.1",
+            return TLSResponse(
                 code = 500,
                 message = "Internal Server Error",
-                headers = emptyMap(),
-                body = "todo".toByteArray(),
+                encoded = "todo".toByteArray(),
             )
         }
         if (oldSession.expires < now) {
-            return HttpResponse(
-                version = "1.1",
+            return TLSResponse(
                 code = 500,
                 message = "Internal Server Error",
-                headers = mapOf("message" to "Session expired!"),
-                body = "todo".toByteArray(),
+                encoded = "todo".toByteArray(),
             )
         }
         val commits = injection.storages.merge(infos = mergeRequest.merges)
         val mergeResponse = ItemsMergeResponse(commits = commits)
         injection.locals.session = null
-        val responseBody = injection.serializer.remote.mergeResponse.encode(mergeResponse)
-        return HttpResponse(
-            version = "1.1",
-            code = 200,
-            message = "OK",
-            headers = mapOf(
-                "Content-Type" to "application/json",
-                "Content-Length" to responseBody.size.toString(),
-            ),
-            body = responseBody,
+        return TLSResponse.OK(
+            encoded = injection.serializer.remote.mergeResponse.encode(mergeResponse),
         )
     }
 
@@ -147,21 +127,9 @@ internal class ReceiverRouting(
             """.trimIndent(),
         )
         val response = when (val route = mapping[request.query]) {
-            null -> HttpResponse(
-                version = "1.1",
-                code = 404,
-                message = "Not Found",
-                headers = emptyMap(),
-                body = null,
-            )
+            null -> HttpResponse.NotFound()
             else -> when (val transform = route[request.method]) {
-                null -> HttpResponse(
-                    version = "1.1",
-                    code = 405,
-                    message = "Method Not Allowed",
-                    headers = emptyMap(),
-                    body = null,
-                )
+                null -> HttpResponse.MethodNotAllowed()
                 else -> transform(request)
             }
         }

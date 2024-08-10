@@ -17,6 +17,7 @@ import org.kepocnhh.hegel.provider.FinalLocals
 import org.kepocnhh.hegel.provider.FinalLoggers
 import org.kepocnhh.hegel.provider.FinalRemotes
 import org.kepocnhh.hegel.provider.FinalSecrets
+import org.kepocnhh.hegel.provider.FinalTLSEnvironment
 import org.kepocnhh.hegel.provider.JsonSerializer
 import org.kepocnhh.hegel.provider.MDHashFunction
 import org.kepocnhh.hegel.provider.Serializer
@@ -58,19 +59,21 @@ internal class App : Application() {
             )
         val secrets = FinalSecrets()
         val sessions = Sessions()
+        val locals = FinalLocals(context = this, secrets = secrets)
         _injection = Injection(
             contexts = Contexts(
                 main = Dispatchers.Main,
                 default = Dispatchers.Default,
             ),
             loggers = FinalLoggers,
-            locals = FinalLocals(context = this, secrets = secrets),
+            locals = locals,
             storages = storages,
             remotes = FinalRemotes(serializer = serializer),
             serializer = serializer,
             sessions = sessions,
             assets = FinalAssets(context = this),
             secrets = secrets,
+            tls = FinalTLSEnvironment(locals = locals, secrets = secrets, sessions = sessions),
         )
     }
 
