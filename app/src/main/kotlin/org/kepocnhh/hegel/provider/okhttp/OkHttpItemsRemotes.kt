@@ -10,48 +10,73 @@ import org.kepocnhh.hegel.entity.ItemsSyncResponse
 import org.kepocnhh.hegel.entity.NotModifiedException
 import org.kepocnhh.hegel.provider.ItemsRemotes
 import org.kepocnhh.hegel.provider.Serializer
+import sp.kx.http.TLSEnvironment
+import sp.kx.http.TLSTransmitter
 import java.net.URL
 
 internal class OkHttpItemsRemotes(
     private val client: OkHttpClient,
     private val serializer: Serializer,
-    private val url: URL,
+    private val address: URL,
+    private val tls: TLSEnvironment,
 ) : ItemsRemotes {
-    override fun sync(request: ItemsSyncRequest): ItemsSyncResponse {
+    private fun <T : Any> execute(
+        method: String,
+        query: String,
+        encoded: ByteArray,
+        decode: (ByteArray) -> T,
+    ): T {
+        // todo util
+        val methodCode: Byte = TLSEnvironment.getMethodCode(method = method)
+        val encodedQuery = query.toByteArray()
+        val tlsTransmitter = TLSTransmitter.build(
+            env = tls,
+            methodCode = methodCode,
+            encodedQuery = encodedQuery,
+            encoded = encoded,
+        )
         return client.newCall(
-            Request.Builder()
-                .url(URL(url, "v1/items/sync"))
-                .header("Content-Type", "application/json")
-                .post(serializer.remote.syncRequest.encode(request).toRequestBody())
-                .build()
+            request = Request.Builder()
+                .url(URL(address, query))
+                .method(method, tlsTransmitter.body.toRequestBody())
+                .build(),
         ).execute().use { response ->
             when (response.code) {
                 200 -> {
-                    val bytes = response.body?.bytes() ?: TODO()
-//                    println("on response sync: (${bytes.size})${bytes.toHEX()}") // todo
-                    serializer.remote.syncResponse.decode(bytes)
+                    val body = response.body?.bytes() ?: error("No body!")
+                    val responseEncoded = TLSTransmitter.fromResponse(
+                        env = tls,
+                        methodCode = methodCode,
+                        encodedQuery = encodedQuery,
+                        secretKey = tlsTransmitter.secretKey,
+                        requestID = tlsTransmitter.id,
+                        responseCode = response.code,
+                        message = response.message,
+                        body = body,
+                    )
+                    decode(responseEncoded)
                 }
                 304 -> throw NotModifiedException()
-                else -> TODO("FinalRemotes:itemsSync:Unknown code ${response.code}!")
+                else -> error("Unknown code: ${response.code}!")
             }
         }
     }
 
+    override fun sync(request: ItemsSyncRequest): ItemsSyncResponse {
+        return execute(
+            method = "POST",
+            query = "/v1/items/sync",
+            encoded = serializer.remote.syncRequest.encode(request),
+            decode = serializer.remote.syncResponse::decode,
+        )
+    }
+
     override fun merge(request: ItemsMergeRequest): ItemsMergeResponse {
-        return client.newCall(
-            Request.Builder()
-                .url(URL(url, "v1/items/merge"))
-                .header("Content-Type", "application/json")
-                .post(serializer.remote.mergeRequest.encode(request).toRequestBody())
-                .build()
-        ).execute().use { response ->
-            when (response.code) {
-                200 -> {
-                    val bytes = response.body?.bytes() ?: TODO()
-                    serializer.remote.mergeResponse.decode(bytes)
-                }
-                else -> TODO("FinalRemotes:itemsSyncMerge:Unknown code ${response.code}!")
-            }
-        }
+        return execute(
+            method = "POST",
+            query = "/v1/items/merge",
+            encoded = serializer.remote.mergeRequest.encode(request),
+            decode = serializer.remote.mergeResponse::decode,
+        )
     }
 }

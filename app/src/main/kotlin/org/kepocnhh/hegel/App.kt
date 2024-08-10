@@ -60,6 +60,7 @@ internal class App : Application() {
         val secrets = FinalSecrets()
         val sessions = Sessions()
         val locals = FinalLocals(context = this, secrets = secrets)
+        val tls = FinalTLSEnvironment(locals = locals, secrets = secrets, sessions = sessions)
         _injection = Injection(
             contexts = Contexts(
                 main = Dispatchers.Main,
@@ -68,12 +69,12 @@ internal class App : Application() {
             loggers = FinalLoggers,
             locals = locals,
             storages = storages,
-            remotes = FinalRemotes(serializer = serializer),
+            remotes = FinalRemotes(serializer = serializer, tls = tls),
             serializer = serializer,
             sessions = sessions,
             assets = FinalAssets(context = this),
             secrets = secrets,
-            tls = FinalTLSEnvironment(locals = locals, secrets = secrets, sessions = sessions),
+            tls = tls,
         )
     }
 

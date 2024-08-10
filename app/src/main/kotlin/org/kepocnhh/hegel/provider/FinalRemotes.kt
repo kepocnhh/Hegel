@@ -2,11 +2,13 @@ package org.kepocnhh.hegel.provider
 
 import okhttp3.OkHttpClient
 import org.kepocnhh.hegel.provider.okhttp.OkHttpItemsRemotes
+import sp.kx.http.TLSEnvironment
 import java.net.URL
 import java.util.concurrent.TimeUnit
 
 internal class FinalRemotes(
     private val serializer: Serializer,
+    private val tls: TLSEnvironment,
 ) : Remotes {
     private val client = OkHttpClient.Builder()
         .callTimeout(5, TimeUnit.SECONDS)
@@ -15,11 +17,12 @@ internal class FinalRemotes(
         .writeTimeout(5, TimeUnit.SECONDS)
         .build()
 
-    override fun items(url: URL): ItemsRemotes {
+    override fun items(address: URL): ItemsRemotes {
         return OkHttpItemsRemotes(
             client = client,
             serializer = serializer,
-            url = url,
+            address = address,
+            tls = tls,
         )
     }
 }

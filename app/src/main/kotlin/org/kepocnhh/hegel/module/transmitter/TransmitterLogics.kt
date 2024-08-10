@@ -63,8 +63,8 @@ internal class TransmitterLogics(
                 merges.forEach { (storageId, mergeInfo) ->
                     logger.debug("upload[$storageId]: " + mergeInfo.items.map { it.id }) // todo
                 } // todo
-                val url = injection.locals.address ?: TODO()
-                injection.remotes.items(url = url).merge(request)
+                val address = injection.locals.address ?: TODO()
+                injection.remotes.items(address = address).merge(request)
             }
         }.fold(
             onSuccess = {
