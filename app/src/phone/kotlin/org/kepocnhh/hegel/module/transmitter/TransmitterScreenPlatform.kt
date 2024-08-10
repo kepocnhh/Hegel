@@ -37,7 +37,7 @@ internal fun TransmitterScreen(
 ) {
     BackHandler(onBack = onBack)
     val insets = WindowInsets.systemBars.asPaddingValues()
-    val addressState = remember { mutableStateOf("") }
+    val addressState = remember { mutableStateOf("192.168.88.217:40631") }
     LaunchedEffect(savedSpec) {
         if (!savedSpec.isNullOrBlank()) {
             addressState.value = savedSpec

@@ -9,7 +9,9 @@ import org.kepocnhh.hegel.entity.ItemsSyncRequest
 import org.kepocnhh.hegel.entity.ItemsSyncResponse
 import org.kepocnhh.hegel.entity.NotModifiedException
 import org.kepocnhh.hegel.provider.ItemsRemotes
+import org.kepocnhh.hegel.provider.Logger
 import org.kepocnhh.hegel.provider.Serializer
+import org.kepocnhh.hegel.util.toHEX
 import sp.kx.http.TLSEnvironment
 import sp.kx.http.TLSTransmitter
 import java.net.URL
@@ -19,6 +21,7 @@ internal class OkHttpItemsRemotes(
     private val serializer: Serializer,
     private val address: URL,
     private val tls: TLSEnvironment,
+    private val logger: Logger,
 ) : ItemsRemotes {
     private fun <T : Any> execute(
         method: String,
@@ -63,10 +66,12 @@ internal class OkHttpItemsRemotes(
     }
 
     override fun sync(request: ItemsSyncRequest): ItemsSyncResponse {
+        val encoded = serializer.remote.syncRequest.encode(request)
+        logger.debug("request decrypted: ${encoded.toHEX()}")
         return execute(
             method = "POST",
             query = "/v1/items/sync",
-            encoded = serializer.remote.syncRequest.encode(request),
+            encoded = encoded,
             decode = serializer.remote.syncResponse::decode,
         )
     }

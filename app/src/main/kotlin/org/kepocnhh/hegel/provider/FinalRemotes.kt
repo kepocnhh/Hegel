@@ -9,6 +9,7 @@ import java.util.concurrent.TimeUnit
 internal class FinalRemotes(
     private val serializer: Serializer,
     private val tls: TLSEnvironment,
+    private val loggers: Loggers,
 ) : Remotes {
     private val client = OkHttpClient.Builder()
         .callTimeout(5, TimeUnit.SECONDS)
@@ -23,6 +24,7 @@ internal class FinalRemotes(
             serializer = serializer,
             address = address,
             tls = tls,
+            logger = loggers.create("[Items]"),
         )
     }
 }
