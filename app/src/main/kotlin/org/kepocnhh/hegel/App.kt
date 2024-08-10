@@ -1,14 +1,9 @@
 package org.kepocnhh.hegel
 
 import android.app.Application
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.staticCompositionLocalOf
-import androidx.compose.ui.platform.LocalView
 import kotlinx.coroutines.Dispatchers
 import org.kepocnhh.hegel.module.app.Injection
 import org.kepocnhh.hegel.provider.Contexts
@@ -22,7 +17,6 @@ import org.kepocnhh.hegel.provider.JsonSerializer
 import org.kepocnhh.hegel.provider.MDHashFunction
 import org.kepocnhh.hegel.provider.Serializer
 import org.kepocnhh.hegel.provider.Sessions
-import org.kepocnhh.hegel.util.compose.toPaddings
 import sp.kx.logics.Logics
 import sp.kx.logics.LogicsFactory
 import sp.kx.logics.LogicsProvider

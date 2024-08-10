@@ -40,6 +40,7 @@ internal class ReceiverRouting(
     private fun onPostItemsSync(request: HttpRequest): HttpResponse {
         logger.debug("on post items sync...")
         return map(request) {
+            logger.debug("request decrypted: ${it.toHEX()}")
             val syncRequest = injection.serializer.remote.syncRequest.decode(it)
             onPostItemsSync(syncRequest = syncRequest)
         }
