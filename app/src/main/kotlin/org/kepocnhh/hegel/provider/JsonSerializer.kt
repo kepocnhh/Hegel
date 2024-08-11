@@ -8,8 +8,10 @@ import org.kepocnhh.hegel.entity.ItemsMergeRequest
 import org.kepocnhh.hegel.entity.ItemsMergeResponse
 import org.kepocnhh.hegel.entity.ItemsSyncRequest
 import org.kepocnhh.hegel.entity.ItemsSyncResponse
+import org.kepocnhh.hegel.util.Hashes
 import sp.kx.storages.CommitInfo
 import sp.kx.storages.Described
+import sp.kx.storages.HashFunction
 import java.util.Base64
 import java.util.UUID
 import kotlin.time.Duration.Companion.milliseconds
@@ -18,7 +20,9 @@ import sp.kx.storages.MergeInfo
 import sp.kx.storages.SyncInfo
 import sp.kx.storages.Transformer
 
-internal class JsonSerializer : Serializer {
+internal class JsonSerializer(
+    private val hf: HashFunction,
+) : Serializer {
     private fun ItemInfo.toJSONObject(): JSONObject {
         return JSONObject()
             .put("hash", hash.base64())
@@ -266,17 +270,13 @@ internal class JsonSerializer : Serializer {
 
     override val remote: Serializer.Remote = object : Serializer.Remote {
         override val syncRequest: Transformer<ItemsSyncRequest> = object : Transformer<ItemsSyncRequest> {
-            override fun encode(value: ItemsSyncRequest): ByteArray {
-                return JSONObject()
-                    .put("hashes", value.hashes.toBase64(keys = UUID::toString))
-                    .toString()
-                    .toByteArray()
+            override fun encode(decoded: ItemsSyncRequest): ByteArray {
+                return Hashes.toByteArray(hashes = decoded.hashes, hf = hf)
             }
 
-            override fun decode(bytes: ByteArray): ItemsSyncRequest {
-                val obj = JSONObject(String(bytes))
+            override fun decode(encoded: ByteArray): ItemsSyncRequest {
                 return ItemsSyncRequest(
-                    hashes = obj.getJSONObject("hashes").fromBase64(keys = UUID::fromString),
+                    hashes = Hashes.fromByteArray(encoded = encoded, hf = hf),
                 )
             }
         }

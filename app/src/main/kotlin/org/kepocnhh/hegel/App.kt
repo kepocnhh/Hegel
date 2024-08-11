@@ -32,8 +32,8 @@ import kotlin.time.Duration.Companion.milliseconds
 internal class App : Application() {
     override fun onCreate() {
         super.onCreate()
-        val serializer: Serializer = JsonSerializer()
         val hf = MDHashFunction("MD5")
+        val serializer: Serializer = JsonSerializer(hf = hf)
         val env = object : SyncStreamsStorage.Environment {
             override fun now(): Duration {
                 return System.currentTimeMillis().milliseconds
