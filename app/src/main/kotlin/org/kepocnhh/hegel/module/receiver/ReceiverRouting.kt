@@ -60,7 +60,7 @@ internal class ReceiverRouting(
             injection.locals.session = null
         }
         val syncs = injection.storages.getSyncInfo(syncRequest.hashes)
-        if (syncs.isEmpty()) {
+        if (syncs.infos.isEmpty()) {
             logger.debug("not modified")
             return TLSResponse.NotModified()
         }
@@ -69,10 +69,10 @@ internal class ReceiverRouting(
             expires = now + 1.minutes,
         )
         injection.locals.session = session
-        logger.debug("syncs: ${syncs.mapValues { (_, si) -> si.infos.mapValues { (_, ii) -> ii.hash.toHEX() } }}") // todo
+        logger.debug("syncs: ${syncs.infos.mapValues { (_, si) -> si.infos.mapValues { (_, ii) -> ii.hash.toHEX() } }}") // todo
         val response = ItemsSyncResponse(
             sessionId = session.id,
-            syncs = syncs,
+            delegate = syncs,
         )
         return TLSResponse.OK(
             encoded = injection.serializer.remote.syncResponse.encode(response),
@@ -111,7 +111,7 @@ internal class ReceiverRouting(
                 encoded = "todo".toByteArray(),
             )
         }
-        val commits = injection.storages.merge(infos = mergeRequest.merges)
+        val commits = injection.storages.merge(session = mergeRequest.syncSession, infos = mergeRequest.merges)
         val mergeResponse = ItemsMergeResponse(commits = commits)
         injection.locals.session = null
         return TLSResponse.OK(

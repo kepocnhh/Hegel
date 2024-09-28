@@ -44,22 +44,22 @@ internal fun BarScreen(
         LazyColumn(
             contentPadding = insets,
         ) {
-            items.list.forEachIndexed { index, described ->
+            items.list.forEachIndexed { index, payload ->
                 item(
-                    key = described.id,
+                    key = payload.meta.id,
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable {
-                                onUpdate(described.id)
+                                onUpdate(payload.meta.id)
                             },
                     ) {
                         val text = """
-                            $index) |${described.item.count}|
-                            id: ${described.id}
-                            created: ${Date(described.info.created.inWholeMilliseconds)}
-                            updated: ${Date(described.info.updated.inWholeMilliseconds)}
+                            $index) |${payload.value.count}|
+                            id: ${payload.meta.id}
+                            created: ${Date(payload.meta.created.inWholeMilliseconds)}
+                            updated: ${Date(payload.meta.info.updated.inWholeMilliseconds)}
                         """.trimIndent()
                         BasicText(
                             modifier = Modifier
@@ -71,7 +71,7 @@ internal fun BarScreen(
                                 .background(Color.Black)
                                 .padding(16.dp)
                                 .clickable(enabled = !state.loading) {
-                                    onDelete(described.id)
+                                    onDelete(payload.meta.id)
                                 },
                             text = "x",
                             style = TextStyle(color = Color.White),

@@ -13,6 +13,8 @@ import org.kepocnhh.hegel.entity.NotModifiedException
 import org.kepocnhh.hegel.module.app.Injection
 import org.kepocnhh.hegel.util.toHEX
 import sp.kx.logics.Logics
+import sp.kx.storages.SyncResponse
+import sp.kx.storages.SyncSession
 import java.net.URL
 
 internal class TransmitterLogics(
@@ -39,10 +41,10 @@ internal class TransmitterLogics(
     private val _broadcast = MutableSharedFlow<Broadcast>()
     val broadcast = _broadcast.asSharedFlow()
 
-    private suspend fun itemsMerge(response: ItemsMergeResponse) {
+    private suspend fun itemsMerge(syncSession: SyncSession, response: ItemsMergeResponse) {
         logger.debug("items merge...")
         withContext(injection.contexts.default) {
-            injection.storages.commit(infos = response.commits)
+            injection.storages.commit(session = syncSession, infos = response.commits)
         }
         _state.value = State(loading = false)
         _broadcast.emit(Broadcast.OnSync(Result.success(Unit)))
@@ -50,25 +52,26 @@ internal class TransmitterLogics(
 
     private suspend fun onItemsSyncResponse(response: ItemsSyncResponse) {
         logger.debug("need update...")
-        logger.debug("syncs: ${response.syncs.mapValues { (_, si) -> si.infos.mapValues { (_, ii) -> ii.hash.toHEX() } }}") // todo
+        logger.debug("syncs: ${response.delegate.infos.mapValues { (_, si) -> si.infos.mapValues { (_, ii) -> ii.hash.toHEX() } }}") // todo
         val merges = withContext(injection.contexts.default) {
-            injection.storages.getMergeInfo(infos = response.syncs)
+            injection.storages.getMergeInfo(session = response.delegate.session, infos = response.delegate.infos)
         }
         withContext(injection.contexts.default) {
             runCatching {
                 val request = ItemsMergeRequest(
                     sessionId = response.sessionId,
+                    syncSession = response.delegate.session,
                     merges = merges,
                 )
                 merges.forEach { (storageId, mergeInfo) ->
-                    logger.debug("upload[$storageId]: " + mergeInfo.items.map { it.id }) // todo
+                    logger.debug("upload[$storageId]: " + mergeInfo.items.map { it.meta.id }) // todo
                 } // todo
                 val address = injection.locals.address ?: TODO()
                 injection.remotes.items(address = address).merge(request)
             }
         }.fold(
             onSuccess = {
-                itemsMerge(response = it)
+                itemsMerge(syncSession = response.delegate.session, response = it)
             },
             onFailure = { error ->
                 logger.warning("items merge: $error")
