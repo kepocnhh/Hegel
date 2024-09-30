@@ -16,6 +16,7 @@ import org.kepocnhh.hegel.module.bar.BarScreen
 import org.kepocnhh.hegel.module.enter.EnterScreen
 import org.kepocnhh.hegel.module.foo.FooScreen
 import org.kepocnhh.hegel.module.main.MainScreen
+import org.kepocnhh.hegel.module.pics.PicsScreen
 import org.kepocnhh.hegel.module.receiver.ReceiverScreen
 import org.kepocnhh.hegel.module.transmitter.TransmitterScreen
 
@@ -25,6 +26,7 @@ internal fun RouterScreen(onLock: () -> Unit) {
     when (state.value) {
         MainScreen.State.Foo -> FooScreen(onBack = { state.value = null })
         MainScreen.State.Bar -> BarScreen(onBack = { state.value = null })
+        MainScreen.State.Pics -> PicsScreen(onBack = { state.value = null })
         MainScreen.State.Receiver -> ReceiverScreen(onBack = { state.value = null })
         MainScreen.State.Transmitter -> TransmitterScreen(onBack = { state.value = null })
         null -> MainScreen(

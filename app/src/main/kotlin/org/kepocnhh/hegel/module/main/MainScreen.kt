@@ -4,6 +4,7 @@ internal object MainScreen {
     enum class State {
         Foo,
         Bar,
+        Pics,
         Receiver,
         Transmitter,
     }
