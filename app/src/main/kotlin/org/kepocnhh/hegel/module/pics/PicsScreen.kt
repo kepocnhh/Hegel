@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import org.kepocnhh.hegel.App
+import kotlin.math.absoluteValue
 
 @Composable
 internal fun PicsScreen(onBack: () -> Unit) {
@@ -20,5 +21,10 @@ internal fun PicsScreen(onBack: () -> Unit) {
         onBack = onBack,
         state = state,
         items = items,
+        onDelete = logics::deleteItem,
+        onAdd = {
+            val pointer = System.currentTimeMillis().toInt().absoluteValue % 1024
+            logics.addItem("pic: $pointer")
+        },
     )
 }

@@ -46,6 +46,7 @@ internal class App : Application() {
         val storages = SyncStreamsStorages.Builder()
             .add(UUID.fromString("84e44670-d301-471b-a7ac-dfd8b1e55554"), serializer.foo)
             .add(UUID.fromString("6c7a0b49-89e9-45ee-945c-0faad06a3df7"), serializer.bar)
+            .add(UUID.fromString("10000000-89e9-45ee-945c-000000000001"), serializer.pics)
             .build(
                 hf = hf,
                 env = env,

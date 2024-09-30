@@ -8,6 +8,7 @@ import org.kepocnhh.hegel.entity.ItemsMergeRequest
 import org.kepocnhh.hegel.entity.ItemsMergeResponse
 import org.kepocnhh.hegel.entity.ItemsSyncRequest
 import org.kepocnhh.hegel.entity.ItemsSyncResponse
+import org.kepocnhh.hegel.entity.Pic
 import sp.kx.storages.CommitInfo
 import sp.kx.storages.HashFunction
 import sp.kx.storages.HashesTransformer
@@ -358,8 +359,8 @@ internal class JsonSerializer(
         }
 
         override val mergeResponse: Transformer<ItemsMergeResponse> = object : Transformer<ItemsMergeResponse> {
-            override fun encode(value: ItemsMergeResponse): ByteArray {
-                val commits = value.commits.toJSONObject(
+            override fun encode(decoded: ItemsMergeResponse): ByteArray {
+                val commits = decoded.commits.toJSONObject(
                     keys = UUID::toString,
                     values = { it.toJSONObject() },
                 )
@@ -369,8 +370,8 @@ internal class JsonSerializer(
                     .toByteArray()
             }
 
-            override fun decode(bytes: ByteArray): ItemsMergeResponse {
-                val obj = JSONObject(String(bytes))
+            override fun decode(encoded: ByteArray): ItemsMergeResponse {
+                val obj = JSONObject(String(encoded))
                 val commits = obj.getJSONObject("commits").toMap(
                     keys = UUID::fromString,
                     values = { it.toCommitInfo() },
@@ -383,12 +384,12 @@ internal class JsonSerializer(
     }
 
     override val foo = object : Transformer<Foo> {
-        override fun encode(value: Foo): ByteArray {
-            return value.toJSONObject().toString().toByteArray()
+        override fun encode(decoded: Foo): ByteArray {
+            return decoded.toJSONObject().toString().toByteArray()
         }
 
-        override fun decode(bytes: ByteArray): Foo {
-            return JSONObject(String(bytes)).toFoo()
+        override fun decode(encoded: ByteArray): Foo {
+            return JSONObject(String(encoded)).toFoo()
         }
     }
 
@@ -410,6 +411,29 @@ internal class JsonSerializer(
 
         override fun decode(encoded: ByteArray): Bar {
             return JSONObject(String(encoded)).toBar()
+        }
+    }
+
+    private fun Pic.toJSONObject(): JSONObject {
+        return JSONObject()
+            .put("title", title)
+            .put("fileId", fileId?.toString())
+    }
+
+    private fun JSONObject.toPic(): Pic {
+        return Pic(
+            title = getString("title"),
+            fileId = if (has("fileId")) UUID.fromString(getString("fileId")) else null,
+        )
+    }
+
+    override val pics = object : Transformer<Pic> {
+        override fun decode(encoded: ByteArray): Pic {
+            return JSONObject(String(encoded)).toPic()
+        }
+
+        override fun encode(decoded: Pic): ByteArray {
+            return decoded.toJSONObject().toString().toByteArray()
         }
     }
 }

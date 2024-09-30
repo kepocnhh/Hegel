@@ -6,6 +6,7 @@ import org.kepocnhh.hegel.entity.ItemsMergeRequest
 import org.kepocnhh.hegel.entity.ItemsMergeResponse
 import org.kepocnhh.hegel.entity.ItemsSyncRequest
 import org.kepocnhh.hegel.entity.ItemsSyncResponse
+import org.kepocnhh.hegel.entity.Pic
 import sp.kx.storages.Transformer
 
 internal interface Serializer {
@@ -18,5 +19,6 @@ internal interface Serializer {
 
     val foo: Transformer<Foo>
     val bar: Transformer<Bar>
+    val pics: Transformer<Pic>
     val remote: Remote
 }

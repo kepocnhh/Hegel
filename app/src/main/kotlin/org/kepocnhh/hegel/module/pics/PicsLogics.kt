@@ -6,13 +6,10 @@ import kotlinx.coroutines.withContext
 import org.kepocnhh.hegel.entity.Pic
 import org.kepocnhh.hegel.module.app.Injection
 import sp.kx.logics.Logics
-import sp.kx.storages.ItemInfo
-import sp.kx.storages.Metadata
+import sp.kx.storages.MutableStorage
 import sp.kx.storages.Payload
+import sp.kx.storages.require
 import java.util.UUID
-import kotlin.time.Duration.Companion.hours
-import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.Duration.Companion.minutes
 
 internal class PicsLogics(
     private val injection: Injection,
@@ -31,25 +28,44 @@ internal class PicsLogics(
     private val _items = MutableStateFlow<Items?>(null)
     val items = _items.asStateFlow()
 
+    private fun getStorage(): MutableStorage<Pic> {
+        return injection.storages.require()
+    }
+
     fun requestItems() = launch {
         logger.debug("request items...")
         _state.value = State(loading = true)
         val list = withContext(injection.contexts.default) {
-            val now = System.currentTimeMillis().milliseconds
-            (0 until 24).map { index ->
-                val created = now - 1.hours + index.minutes
-                Payload(
-                    meta = Metadata(
-                        id = UUID(0, index.toLong()),
-                        created = created,
-                        info = ItemInfo(
-                            updated = created,
-                            hash = byteArrayOf(index.toByte()),
-                        )
-                    ),
-                    value = Pic(title = "pic #$index"),
-                )
-            }
+            getStorage().items.sortedBy { it.meta.created }
+        }
+        _items.value = Items(list = list)
+        _state.value = State(loading = false)
+    }
+
+    fun addItem(title: String) = launch {
+        _state.value = State(loading = true)
+        withContext(injection.contexts.default) {
+            getStorage().add(
+                Pic(
+                    title = title,
+                    fileId = null,
+                ),
+            )
+        }
+        val list = withContext(injection.contexts.default) {
+            getStorage().items.sortedBy { it.meta.created }
+        }
+        _items.value = Items(list = list)
+        _state.value = State(loading = false)
+    }
+
+    fun deleteItem(id: UUID) = launch {
+        _state.value = State(loading = true)
+        withContext(injection.contexts.default) {
+            getStorage().delete(id = id)
+        }
+        val list = withContext(injection.contexts.default) {
+            getStorage().items.sortedBy { it.meta.created }
         }
         _items.value = Items(list = list)
         _state.value = State(loading = false)
