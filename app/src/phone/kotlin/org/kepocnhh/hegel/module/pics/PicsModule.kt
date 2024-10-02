@@ -2,12 +2,15 @@ package org.kepocnhh.hegel.module.pics
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContract
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -28,9 +31,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.kepocnhh.hegel.App
 import java.util.UUID
 
@@ -46,6 +53,30 @@ internal fun PicsScreen(
 ) {
     val context = LocalContext.current
     val logger = remember { App.injection.loggers.create("[Pics]") }
+    val fileIdState = remember { mutableStateOf<UUID?>(null) }
+    val bitmapState = remember { mutableStateOf<Bitmap?>(null) }
+    LaunchedEffect(fileIdState.value) {
+        val fileId = fileIdState.value
+        if (fileId != null) {
+            bitmapState.value = withContext(Dispatchers.Default) {
+                BitmapFactory.decodeFile(context.filesDir.resolve(fileId.toString()).absolutePath)
+            }
+            fileIdState.value = null
+        }
+    }
+    val bitmap = bitmapState.value
+    if (bitmap != null) {
+        Dialog(
+            onDismissRequest = {
+                bitmapState.value = null
+            },
+        ) {
+            Image(
+                bitmap = bitmap.asImageBitmap(),
+                contentDescription = "file:id:$bitmap",
+            )
+        }
+    }
     val requestedState = remember { mutableStateOf<UUID?>(null) }
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         val id = requestedState.value
@@ -91,21 +122,42 @@ internal fun PicsScreen(
                                 .weight(1f),
                             text = "$index] ${payload.value.title}",
                         )
-                        BasicText(
-                            modifier = Modifier
-                                .padding(2.dp)
-                                .background(Color.Black)
-                                .padding(8.dp)
-                                .clickable(enabled = !state.loading) {
-                                    if (payload.value.fileId == null) {
+                        if (payload.value.fileId == null) {
+                            BasicText(
+                                modifier = Modifier
+                                    .padding(2.dp)
+                                    .background(Color.Black)
+                                    .padding(8.dp)
+                                    .clickable(enabled = !state.loading) {
                                         requestedState.value = payload.meta.id
-                                    } else {
+                                    },
+                                text = "+f",
+                                style = TextStyle(color = Color.White),
+                            )
+                        } else {
+                            BasicText(
+                                modifier = Modifier
+                                    .padding(2.dp)
+                                    .background(Color.Black)
+                                    .padding(8.dp)
+                                    .clickable(enabled = !state.loading) {
                                         onDeleteFile(payload.meta.id)
-                                    }
-                                },
-                            text = if (payload.value.fileId == null) "+f" else "-f",
-                            style = TextStyle(color = Color.White),
-                        )
+                                    },
+                                text = "-f",
+                                style = TextStyle(color = Color.White),
+                            )
+                            BasicText(
+                                modifier = Modifier
+                                    .padding(2.dp)
+                                    .background(Color.Black)
+                                    .padding(8.dp)
+                                    .clickable(enabled = !state.loading) {
+                                        fileIdState.value = payload.value.fileId
+                                    },
+                                text = "open",
+                                style = TextStyle(color = Color.White),
+                            )
+                        }
                         BasicText(
                             modifier = Modifier
                                 .background(Color.Black)
