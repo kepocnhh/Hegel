@@ -92,4 +92,24 @@ internal class PicsLogics(
         _items.value = Items(list = list)
         _state.value = State(loading = false)
     }
+
+    private fun deleteFile(payload: Payload<Pic>) {
+        val fileId = payload.value.fileId ?: return
+        getStorage().update(id = payload.meta.id, value = payload.value.copy(fileId = null))
+        injection.storages.require<FileDelegate>().delete(id = fileId)
+        injection.filesDir.resolve(fileId.toString()).delete()
+    }
+
+    fun deleteFile(id: UUID) = launch {
+        _state.value = State(loading = true)
+        withContext(injection.contexts.default) {
+            val payload = getStorage().items.firstOrNull { it.meta.id == id } ?: TODO()
+            deleteFile(payload = payload)
+        }
+        val list = withContext(injection.contexts.default) {
+            getStorage().items.sortedBy { it.meta.created }
+        }
+        _items.value = Items(list = list)
+        _state.value = State(loading = false)
+    }
 }

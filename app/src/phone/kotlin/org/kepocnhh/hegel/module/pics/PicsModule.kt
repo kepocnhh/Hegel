@@ -42,6 +42,7 @@ internal fun PicsScreen(
     onDelete: (UUID) -> Unit,
     onAdd: () -> Unit,
     onSetFile: (UUID, ByteArray) -> Unit,
+    onDeleteFile: (UUID) -> Unit,
 ) {
     val context = LocalContext.current
     val logger = remember { App.injection.loggers.create("[Pics]") }
@@ -90,19 +91,21 @@ internal fun PicsScreen(
                                 .weight(1f),
                             text = "$index] ${payload.value.title}",
                         )
-                        if (payload.value.fileId == null) {
-                            BasicText(
-                                modifier = Modifier
-                                    .padding(2.dp)
-                                    .background(Color.Black)
-                                    .padding(8.dp)
-                                    .clickable(enabled = !state.loading) {
+                        BasicText(
+                            modifier = Modifier
+                                .padding(2.dp)
+                                .background(Color.Black)
+                                .padding(8.dp)
+                                .clickable(enabled = !state.loading) {
+                                    if (payload.value.fileId == null) {
                                         requestedState.value = payload.meta.id
-                                    },
-                                text = "=f",
-                                style = TextStyle(color = Color.White),
-                            )
-                        }
+                                    } else {
+                                        onDeleteFile(payload.meta.id)
+                                    }
+                                },
+                            text = if (payload.value.fileId == null) "+f" else "-f",
+                            style = TextStyle(color = Color.White),
+                        )
                         BasicText(
                             modifier = Modifier
                                 .background(Color.Black)

@@ -28,6 +28,9 @@ internal fun PicsScreen(onBack: () -> Unit) {
         },
         onSetFile = { id, bytes ->
             logics.setFile(id = id, bytes = bytes)
-        }
+        },
+        onDeleteFile = { id ->
+            logics.deleteFile(id = id)
+        },
     )
 }
