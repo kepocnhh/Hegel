@@ -2,7 +2,7 @@ package org.kepocnhh.hegel.entity
 
 import java.util.UUID
 
-internal class Pic(
+internal data class Pic(
     val title: String,
     val fileId: UUID?,
 )

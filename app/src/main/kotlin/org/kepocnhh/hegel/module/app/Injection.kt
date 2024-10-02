@@ -10,6 +10,7 @@ import org.kepocnhh.hegel.provider.Serializer
 import org.kepocnhh.hegel.provider.Sessions
 import sp.kx.http.TLSEnvironment
 import sp.kx.storages.SyncStreamsStorages
+import java.io.File
 
 internal data class Injection(
     val contexts: Contexts,
@@ -22,4 +23,5 @@ internal data class Injection(
     val assets: Assets,
     val secrets: Secrets,
     val tls: TLSEnvironment,
+    val filesDir: File,
 )

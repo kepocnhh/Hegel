@@ -1,6 +1,7 @@
 package org.kepocnhh.hegel.provider
 
 import org.kepocnhh.hegel.entity.Bar
+import org.kepocnhh.hegel.entity.FileDelegate
 import org.kepocnhh.hegel.entity.Foo
 import org.kepocnhh.hegel.entity.ItemsMergeRequest
 import org.kepocnhh.hegel.entity.ItemsMergeResponse
@@ -20,5 +21,6 @@ internal interface Serializer {
     val foo: Transformer<Foo>
     val bar: Transformer<Bar>
     val pics: Transformer<Pic>
+    val fds: Transformer<FileDelegate>
     val remote: Remote
 }

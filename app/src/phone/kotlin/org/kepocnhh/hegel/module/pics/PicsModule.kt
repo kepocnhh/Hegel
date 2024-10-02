@@ -1,6 +1,13 @@
 package org.kepocnhh.hegel.module.pics
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContract
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -10,17 +17,21 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
+import org.kepocnhh.hegel.App
 import java.util.UUID
 
 @Composable
@@ -30,7 +41,31 @@ internal fun PicsScreen(
     items: PicsLogics.Items,
     onDelete: (UUID) -> Unit,
     onAdd: () -> Unit,
+    onSetFile: (UUID, ByteArray) -> Unit,
 ) {
+    val context = LocalContext.current
+    val logger = remember { App.injection.loggers.create("[Pics]") }
+    val requestedState = remember { mutableStateOf<UUID?>(null) }
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        val id = requestedState.value
+        if (id != null) {
+            if (uri != null) {
+                logger.debug("uri: $uri")
+                val bytes = context.contentResolver.openInputStream(uri)!!.use { it.readBytes() }
+                onSetFile(id, bytes)
+            }
+            requestedState.value = null
+        }
+    }
+    LaunchedEffect(requestedState.value) {
+        val id = requestedState.value
+        if (id != null) {
+            val input = PickVisualMediaRequest(
+                mediaType = ActivityResultContracts.PickVisualMedia.ImageOnly,
+            )
+            launcher.launch(input)
+        }
+    }
     BackHandler(onBack = onBack)
     Box(
         modifier = Modifier
@@ -55,6 +90,19 @@ internal fun PicsScreen(
                                 .weight(1f),
                             text = "$index] ${payload.value.title}",
                         )
+                        if (payload.value.fileId == null) {
+                            BasicText(
+                                modifier = Modifier
+                                    .padding(2.dp)
+                                    .background(Color.Black)
+                                    .padding(8.dp)
+                                    .clickable(enabled = !state.loading) {
+                                        requestedState.value = payload.meta.id
+                                    },
+                                text = "=f",
+                                style = TextStyle(color = Color.White),
+                            )
+                        }
                         BasicText(
                             modifier = Modifier
                                 .background(Color.Black)

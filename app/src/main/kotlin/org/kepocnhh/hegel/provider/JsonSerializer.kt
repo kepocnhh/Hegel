@@ -3,6 +3,7 @@ package org.kepocnhh.hegel.provider
 import org.json.JSONArray
 import org.json.JSONObject
 import org.kepocnhh.hegel.entity.Bar
+import org.kepocnhh.hegel.entity.FileDelegate
 import org.kepocnhh.hegel.entity.Foo
 import org.kepocnhh.hegel.entity.ItemsMergeRequest
 import org.kepocnhh.hegel.entity.ItemsMergeResponse
@@ -433,6 +434,29 @@ internal class JsonSerializer(
         }
 
         override fun encode(decoded: Pic): ByteArray {
+            return decoded.toJSONObject().toString().toByteArray()
+        }
+    }
+
+    private fun FileDelegate.toJSONObject(): JSONObject {
+        return JSONObject()
+            .put("hash", hash.base64())
+            .put("size", size)
+    }
+
+    private fun JSONObject.toFileDelegate(): FileDelegate {
+        return FileDelegate(
+            hash = getString("hash").base64(),
+            size = getInt("size"),
+        )
+    }
+
+    override val fds = object : Transformer<FileDelegate> {
+        override fun decode(encoded: ByteArray): FileDelegate {
+            return JSONObject(String(encoded)).toFileDelegate()
+        }
+
+        override fun encode(decoded: FileDelegate): ByteArray {
             return decoded.toJSONObject().toString().toByteArray()
         }
     }

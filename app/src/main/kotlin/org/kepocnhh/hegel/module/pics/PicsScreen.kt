@@ -26,5 +26,8 @@ internal fun PicsScreen(onBack: () -> Unit) {
             val pointer = System.currentTimeMillis().toInt().absoluteValue % 1024
             logics.addItem("pic: $pointer")
         },
+        onSetFile = { id, bytes ->
+            logics.setFile(id = id, bytes = bytes)
+        }
     )
 }

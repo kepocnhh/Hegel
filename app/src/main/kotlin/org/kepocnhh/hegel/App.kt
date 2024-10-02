@@ -47,6 +47,7 @@ internal class App : Application() {
             .add(UUID.fromString("84e44670-d301-471b-a7ac-dfd8b1e55554"), serializer.foo)
             .add(UUID.fromString("6c7a0b49-89e9-45ee-945c-0faad06a3df7"), serializer.bar)
             .add(UUID.fromString("10000000-89e9-45ee-945c-000000000001"), serializer.pics)
+            .add(UUID.fromString("20000000-89e9-45ee-945c-000000000002"), serializer.fds)
             .build(
                 hf = hf,
                 env = env,
@@ -71,6 +72,7 @@ internal class App : Application() {
             assets = FinalAssets(context = this),
             secrets = secrets,
             tls = tls,
+            filesDir = filesDir,
         )
     }
 
