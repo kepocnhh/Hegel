@@ -6,6 +6,7 @@ import kotlinx.coroutines.withContext
 import org.kepocnhh.hegel.entity.FileDelegate
 import org.kepocnhh.hegel.entity.Pic
 import org.kepocnhh.hegel.module.app.Injection
+import org.kepocnhh.hegel.util.toHEX
 import sp.kx.logics.Logics
 import sp.kx.storages.MutableStorage
 import sp.kx.storages.Payload
@@ -49,7 +50,7 @@ internal class PicsLogics(
             getStorage().add(
                 Pic(
                     title = title,
-                    fileId = null,
+                    fd = null,
                 ),
             )
         }
@@ -76,15 +77,15 @@ internal class PicsLogics(
         logger.debug("set file: $id")
         _state.value = State(loading = true)
         withContext(injection.contexts.default) {
-            val filesDir = injection.filesDir
-            val fileDelegate = FileDelegate(
+            val fd = FileDelegate(
                 hash = injection.secrets.hash(bytes),
                 size = bytes.size,
             )
-            val payload = injection.storages.require<FileDelegate>().add(value = fileDelegate)
-            filesDir.resolve(payload.meta.id.toString()).writeBytes(bytes)
-            val pic = getStorage().items.firstOrNull { it.meta.id == id }?.value ?: TODO()
-            getStorage().update(id = id, value = pic.copy(fileId = payload.meta.id))
+//            val payload = injection.storages.require<FileDelegate>().add(value = fileDelegate)
+            val payload = getStorage().items.firstOrNull { it.meta.id == id } ?: TODO()
+            val name = "${payload.meta.id}-${fd.hash.copyOf(16).toHEX()}"
+            injection.filesDir.resolve(name).writeBytes(bytes)
+            getStorage().update(id = id, value = payload.value.copy(fd = fd))
         }
         val list = withContext(injection.contexts.default) {
             getStorage().items.sortedBy { it.meta.created }
@@ -94,10 +95,10 @@ internal class PicsLogics(
     }
 
     private fun deleteFile(payload: Payload<Pic>) {
-        val fileId = payload.value.fileId ?: return
-        getStorage().update(id = payload.meta.id, value = payload.value.copy(fileId = null))
-        injection.storages.require<FileDelegate>().delete(id = fileId)
-        injection.filesDir.resolve(fileId.toString()).delete()
+        val fd = payload.value.fd ?: return
+        getStorage().update(id = payload.meta.id, value = payload.value.copy(fd = null))
+        val name = "${payload.meta.id}-${fd.hash.copyOf(16).toHEX()}"
+        injection.filesDir.resolve(name).delete()
     }
 
     fun deleteFile(id: UUID) = launch {

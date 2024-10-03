@@ -39,6 +39,9 @@ import androidx.compose.ui.window.Dialog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.kepocnhh.hegel.App
+import org.kepocnhh.hegel.entity.FileDelegate
+import org.kepocnhh.hegel.util.toHEX
+import sp.kx.storages.Payload
 import java.util.UUID
 
 @Composable
@@ -53,16 +56,15 @@ internal fun PicsScreen(
 ) {
     val context = LocalContext.current
     val logger = remember { App.injection.loggers.create("[Pics]") }
-    val fileIdState = remember { mutableStateOf<UUID?>(null) }
+    val fdState = remember { mutableStateOf<Pair<UUID, FileDelegate>?>(null) }
     val bitmapState = remember { mutableStateOf<Bitmap?>(null) }
-    LaunchedEffect(fileIdState.value) {
-        val fileId = fileIdState.value
-        if (fileId != null) {
-            bitmapState.value = withContext(Dispatchers.Default) {
-                BitmapFactory.decodeFile(context.filesDir.resolve(fileId.toString()).absolutePath)
-            }
-            fileIdState.value = null
+    LaunchedEffect(fdState.value) {
+        val (id, fd) = fdState.value ?: return@LaunchedEffect
+        bitmapState.value = withContext(Dispatchers.Default) {
+            val file = context.filesDir.resolve("$id-${fd.hash.copyOf(16).toHEX()}")
+            BitmapFactory.decodeFile(file.absolutePath)
         }
+        fdState.value = null
     }
     val bitmap = bitmapState.value
     if (bitmap != null) {
@@ -122,7 +124,8 @@ internal fun PicsScreen(
                                 .weight(1f),
                             text = "$index] ${payload.value.title}",
                         )
-                        if (payload.value.fileId == null) {
+                        val fd = payload.value.fd
+                        if (fd == null) {
                             BasicText(
                                 modifier = Modifier
                                     .padding(2.dp)
@@ -152,7 +155,7 @@ internal fun PicsScreen(
                                     .background(Color.Black)
                                     .padding(8.dp)
                                     .clickable(enabled = !state.loading) {
-                                        fileIdState.value = payload.value.fileId
+                                        fdState.value = payload.meta.id to fd
                                     },
                                 text = "open",
                                 style = TextStyle(color = Color.White),

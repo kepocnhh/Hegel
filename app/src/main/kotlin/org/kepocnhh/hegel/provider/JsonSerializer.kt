@@ -418,13 +418,13 @@ internal class JsonSerializer(
     private fun Pic.toJSONObject(): JSONObject {
         return JSONObject()
             .put("title", title)
-            .put("fileId", fileId?.toString())
+            .put("fd", fd?.toJSONObject())
     }
 
     private fun JSONObject.toPic(): Pic {
         return Pic(
             title = getString("title"),
-            fileId = if (has("fileId")) UUID.fromString(getString("fileId")) else null,
+            fd = if (has("fd")) getJSONObject("fd").toFileDelegate() else null,
         )
     }
 
