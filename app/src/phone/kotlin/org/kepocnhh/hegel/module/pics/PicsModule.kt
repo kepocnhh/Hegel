@@ -42,6 +42,7 @@ import org.kepocnhh.hegel.App
 import org.kepocnhh.hegel.entity.FileDelegate
 import org.kepocnhh.hegel.util.toHEX
 import sp.kx.storages.Payload
+import java.io.File
 import java.util.UUID
 
 @Composable
@@ -56,15 +57,14 @@ internal fun PicsScreen(
 ) {
     val context = LocalContext.current
     val logger = remember { App.injection.loggers.create("[Pics]") }
-    val fdState = remember { mutableStateOf<Pair<UUID, FileDelegate>?>(null) }
+    val fileState = remember { mutableStateOf<File?>(null) }
     val bitmapState = remember { mutableStateOf<Bitmap?>(null) }
-    LaunchedEffect(fdState.value) {
-        val (id, fd) = fdState.value ?: return@LaunchedEffect
+    LaunchedEffect(fileState.value) {
+        val file = fileState.value ?: return@LaunchedEffect
         bitmapState.value = withContext(Dispatchers.Default) {
-            val file = context.filesDir.resolve("$id-${fd.hash.copyOf(16).toHEX()}")
             BitmapFactory.decodeFile(file.absolutePath)
         }
-        fdState.value = null
+        fileState.value = null
     }
     val bitmap = bitmapState.value
     if (bitmap != null) {
@@ -138,6 +138,8 @@ internal fun PicsScreen(
                                 style = TextStyle(color = Color.White),
                             )
                         } else {
+                            val name = "${payload.meta.id}-${fd.hash.copyOf(16).toHEX()}"
+                            val file = context.filesDir.resolve(name)
                             BasicText(
                                 modifier = Modifier
                                     .padding(2.dp)
@@ -149,17 +151,31 @@ internal fun PicsScreen(
                                 text = "-f",
                                 style = TextStyle(color = Color.White),
                             )
-                            BasicText(
-                                modifier = Modifier
-                                    .padding(2.dp)
-                                    .background(Color.Black)
-                                    .padding(8.dp)
-                                    .clickable(enabled = !state.loading) {
-                                        fdState.value = payload.meta.id to fd
-                                    },
-                                text = "open",
-                                style = TextStyle(color = Color.White),
-                            )
+                            if (file.exists()) {
+                                BasicText(
+                                    modifier = Modifier
+                                        .padding(2.dp)
+                                        .background(Color.Black)
+                                        .padding(8.dp)
+                                        .clickable(enabled = !state.loading) {
+                                            fileState.value = file
+                                        },
+                                    text = "open",
+                                    style = TextStyle(color = Color.White),
+                                )
+                            } else {
+                                BasicText(
+                                    modifier = Modifier
+                                        .padding(2.dp)
+                                        .background(Color.Black)
+                                        .padding(8.dp)
+                                        .clickable(enabled = !state.loading) {
+                                            // todo
+                                        },
+                                    text = "download",
+                                    style = TextStyle(color = Color.White),
+                                )
+                            }
                         }
                         BasicText(
                             modifier = Modifier
