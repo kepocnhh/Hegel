@@ -113,4 +113,35 @@ internal class PicsLogics(
         _items.value = Items(list = list)
         _state.value = State(loading = false)
     }
+
+    fun downloadFile(id: UUID) = launch {
+        _state.value = State(loading = true)
+        withContext(injection.contexts.default) {
+            runCatching {
+                val address = injection.locals.address ?: error("No address!")
+                val bytes = injection.remotes.files(address).getFile(id = id)
+                val fd = FileDelegate(
+                    hash = injection.secrets.hash(bytes),
+                    size = bytes.size,
+                )
+                val payload = getStorage().items.firstOrNull { it.meta.id == id } ?: TODO("No pic by id: $id")
+                if (fd != payload.value.fd) TODO("e: $fd, a: ${payload.value.fd}")
+                val name = "${payload.meta.id}-${fd.hash.copyOf(16).toHEX()}"
+                injection.filesDir.resolve(name).writeBytes(bytes)
+            }.mapCatching {
+                val list = withContext(injection.contexts.default) {
+                    getStorage().items.sortedBy { it.meta.created }
+                }
+                Items(list = list)
+            }
+        }.fold(
+            onSuccess = {
+                _items.value = it
+            },
+            onFailure = { error ->
+                logger.warning("get file by id: $id error: $error")
+            },
+        )
+        _state.value = State(loading = false)
+    }
 }

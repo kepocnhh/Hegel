@@ -1,7 +1,9 @@
 package org.kepocnhh.hegel.provider
 
 import okhttp3.OkHttpClient
+import org.kepocnhh.hegel.provider.okhttp.OkHttpFilesRemotes
 import org.kepocnhh.hegel.provider.okhttp.OkHttpItemsRemotes
+import org.kepocnhh.hegel.provider.okhttp.OkHttpTLSTransmitter
 import sp.kx.http.TLSEnvironment
 import java.net.URL
 import java.util.concurrent.TimeUnit
@@ -20,11 +22,24 @@ internal class FinalRemotes(
 
     override fun items(address: URL): ItemsRemotes {
         return OkHttpItemsRemotes(
-            client = client,
+            tlsTransmitter = OkHttpTLSTransmitter(
+                client = client,
+                address = address,
+                tls = tls,
+            ),
+            loggers = loggers,
             serializer = serializer,
-            address = address,
-            tls = tls,
-            logger = loggers.create("[Items]"),
+        )
+    }
+
+    override fun files(address: URL): FilesRemotes {
+        return OkHttpFilesRemotes(
+            tlsTransmitter = OkHttpTLSTransmitter(
+                client = client,
+                address = address,
+                tls = tls,
+            ),
+            loggers = loggers,
         )
     }
 }

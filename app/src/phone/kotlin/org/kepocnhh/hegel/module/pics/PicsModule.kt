@@ -1,14 +1,10 @@
 package org.kepocnhh.hegel.module.pics
 
-import android.content.Context
-import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
-import androidx.activity.result.contract.ActivityResultContract
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -39,9 +35,7 @@ import androidx.compose.ui.window.Dialog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.kepocnhh.hegel.App
-import org.kepocnhh.hegel.entity.FileDelegate
 import org.kepocnhh.hegel.util.toHEX
-import sp.kx.storages.Payload
 import java.io.File
 import java.util.UUID
 
@@ -54,6 +48,7 @@ internal fun PicsScreen(
     onAdd: () -> Unit,
     onSetFile: (UUID, ByteArray) -> Unit,
     onDeleteFile: (UUID) -> Unit,
+    onDownloadFile: (UUID) -> Unit,
 ) {
     val context = LocalContext.current
     val logger = remember { App.injection.loggers.create("[Pics]") }
@@ -170,7 +165,7 @@ internal fun PicsScreen(
                                         .background(Color.Black)
                                         .padding(8.dp)
                                         .clickable(enabled = !state.loading) {
-                                            // todo
+                                            onDownloadFile(payload.meta.id)
                                         },
                                     text = "download",
                                     style = TextStyle(color = Color.White),
