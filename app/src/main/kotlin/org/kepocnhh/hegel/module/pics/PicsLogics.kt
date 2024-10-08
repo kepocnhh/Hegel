@@ -120,6 +120,7 @@ internal class PicsLogics(
             runCatching {
                 val address = injection.locals.address ?: error("No address!")
                 val bytes = injection.remotes.files(address).getFile(id = id)
+                logger.debug("get ${bytes.size} bytes...")
                 val fd = FileDelegate(
                     hash = injection.secrets.hash(bytes),
                     size = bytes.size,
