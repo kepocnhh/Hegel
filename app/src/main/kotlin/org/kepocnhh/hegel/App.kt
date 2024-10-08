@@ -1,87 +1,78 @@
 package org.kepocnhh.hegel
 
 import android.app.Application
-import androidx.activity.OnBackPressedDispatcher
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.staticCompositionLocalOf
-import androidx.compose.ui.platform.LocalView
 import kotlinx.coroutines.Dispatchers
-import org.kepocnhh.hegel.entity.Session
 import org.kepocnhh.hegel.module.app.Injection
 import org.kepocnhh.hegel.provider.Contexts
-import org.kepocnhh.hegel.provider.EncryptedFileStorage
+import org.kepocnhh.hegel.provider.FinalAssets
 import org.kepocnhh.hegel.provider.FinalLocals
 import org.kepocnhh.hegel.provider.FinalLoggers
 import org.kepocnhh.hegel.provider.FinalRemotes
+import org.kepocnhh.hegel.provider.FinalSecrets
+import org.kepocnhh.hegel.provider.FinalTLSEnvironment
 import org.kepocnhh.hegel.provider.JsonSerializer
-import org.kepocnhh.hegel.provider.Locals
+import org.kepocnhh.hegel.provider.MDHashFunction
 import org.kepocnhh.hegel.provider.Serializer
-import org.kepocnhh.hegel.util.compose.LocalOnBackPressedDispatcher
-import org.kepocnhh.hegel.util.compose.toPaddings
+import org.kepocnhh.hegel.provider.Sessions
 import sp.kx.logics.Logics
 import sp.kx.logics.LogicsFactory
 import sp.kx.logics.LogicsProvider
 import sp.kx.logics.contains
 import sp.kx.logics.get
 import sp.kx.logics.remove
-import sp.kx.storages.SyncStorages
+import sp.kx.storages.SyncStreamsStorage
+import sp.kx.storages.SyncStreamsStorages
 import java.util.UUID
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 
 internal class App : Application() {
-    object Theme {
-        private val LocalInsets = staticCompositionLocalOf<PaddingValues> { error("No insets!") }
-
-        val insets: PaddingValues
-            @Composable
-            @ReadOnlyComposable
-            get() = LocalInsets.current
-
-        @Composable
-        fun Composition(
-            onBackPressedDispatcher: OnBackPressedDispatcher,
-            content: @Composable () -> Unit,
-        ) {
-            CompositionLocalProvider(
-                LocalOnBackPressedDispatcher provides onBackPressedDispatcher,
-                LocalInsets provides LocalView.current.rootWindowInsets.toPaddings(),
-                content = content,
-            )
-        }
-    }
-
     override fun onCreate() {
         super.onCreate()
-        val serializer: Serializer = JsonSerializer()
+        val hf = MDHashFunction("MD5")
+        val serializer: Serializer = JsonSerializer(hf = hf)
+        val env = object : SyncStreamsStorage.Environment {
+            override fun now(): Duration {
+                return System.currentTimeMillis().milliseconds
+            }
+
+            override fun randomUUID(): UUID {
+                return UUID.randomUUID()
+            }
+        }
+        val storages = SyncStreamsStorages.Builder()
+            .add(UUID.fromString("84e44670-d301-471b-a7ac-dfd8b1e55554"), serializer.foo)
+            .add(UUID.fromString("6c7a0b49-89e9-45ee-945c-0faad06a3df7"), serializer.bar)
+            .add(UUID.fromString("10000000-89e9-45ee-945c-000000000001"), serializer.pics)
+            .add(UUID.fromString("20000000-89e9-45ee-945c-000000000002"), serializer.fds)
+            .build(
+                hf = hf,
+                env = env,
+                dir = filesDir,
+            )
+        val secrets = FinalSecrets()
+        val sessions = Sessions()
+        val locals = FinalLocals(context = this, secrets = secrets)
+        val tls = FinalTLSEnvironment(locals = locals, secrets = secrets, sessions = sessions)
+        val loggers = FinalLoggers
         _injection = Injection(
             contexts = Contexts(
                 main = Dispatchers.Main,
                 default = Dispatchers.Default,
             ),
-            loggers = FinalLoggers,
-            locals = FinalLocals(context = this),
-            storages = SyncStorages.Builder()
-                .add(
-                    EncryptedFileStorage(
-                        id = UUID.fromString("84e44670-d301-471b-a7ac-dfd8b1e55554"),
-                        context = this,
-                        transformer = serializer.foo,
-                    ),
-                )
-                .add(
-                    EncryptedFileStorage(
-                        id = UUID.fromString("6c7a0b49-89e9-45ee-945c-0faad06a3df7"),
-                        context = this,
-                        transformer = serializer.bar,
-                    ),
-                )
-                .build(),
-            remotes = FinalRemotes(serializer = serializer),
+            loggers = loggers,
+            locals = locals,
+            storages = storages,
+            remotes = FinalRemotes(serializer = serializer, tls = tls, loggers = loggers),
             serializer = serializer,
+            sessions = sessions,
+            assets = FinalAssets(context = this),
+            secrets = secrets,
+            tls = tls,
+            filesDir = filesDir,
         )
     }
 

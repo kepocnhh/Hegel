@@ -3,33 +3,57 @@ package org.kepocnhh.hegel.provider
 import org.json.JSONArray
 import org.json.JSONObject
 import org.kepocnhh.hegel.entity.Bar
+import org.kepocnhh.hegel.entity.FileDelegate
 import org.kepocnhh.hegel.entity.Foo
-import org.kepocnhh.hegel.entity.ItemsSyncMergeRequest
-import org.kepocnhh.hegel.entity.ItemsSyncMergeResponse
+import org.kepocnhh.hegel.entity.ItemsMergeRequest
+import org.kepocnhh.hegel.entity.ItemsMergeResponse
 import org.kepocnhh.hegel.entity.ItemsSyncRequest
 import org.kepocnhh.hegel.entity.ItemsSyncResponse
+import org.kepocnhh.hegel.entity.Pic
 import sp.kx.storages.CommitInfo
-import sp.kx.storages.Described
+import sp.kx.storages.HashFunction
+import sp.kx.storages.HashesTransformer
+import sp.kx.storages.ItemInfo
+import sp.kx.storages.MergeInfo
+import sp.kx.storages.Metadata
+import sp.kx.storages.Payload
+import sp.kx.storages.RawPayload
+import sp.kx.storages.SyncInfo
+import sp.kx.storages.SyncResponseTransformer
+import sp.kx.storages.SyncSession
+import sp.kx.storages.Transformer
 import java.util.Base64
 import java.util.UUID
 import kotlin.time.Duration.Companion.milliseconds
-import sp.kx.storages.ItemInfo
-import sp.kx.storages.MergeInfo
-import sp.kx.storages.SyncInfo
 
-internal class JsonSerializer : Serializer {
+internal class JsonSerializer(
+    private val hf: HashFunction,
+) : Serializer {
+    private fun Metadata.toJSONObject(): JSONObject {
+        return JSONObject()
+            .put("id", id.toString())
+            .put("created", created.inWholeMilliseconds)
+            .put("info", info.toJSONObject())
+    }
+
+    private fun JSONObject.toMetadata(): Metadata {
+        return Metadata(
+            id = UUID.fromString(getString("id")),
+            created = getLong("created").milliseconds,
+            info = getJSONObject("info").toItemInfo(),
+        )
+    }
+
     private fun ItemInfo.toJSONObject(): JSONObject {
         return JSONObject()
-            .put("hash", hash)
-            .put("created", created.inWholeMilliseconds)
+            .put("hash", hash.base64())
             .put("updated", updated.inWholeMilliseconds)
     }
 
     private fun JSONObject.toItemInfo(): ItemInfo {
         return ItemInfo(
-            created = getLong("created").milliseconds,
             updated = getLong("updated").milliseconds,
-            hash = getString("hash"),
+            hash = getString("hash").base64(),
         )
     }
 
@@ -44,11 +68,10 @@ internal class JsonSerializer : Serializer {
         )
     }
 
-    private fun <T : Any> Described<T>.toJSONObject(transform: (T) -> JSONObject): JSONObject {
+    private fun <T : Any> Payload<T>.toJSONObject(transform: (T) -> JSONObject): JSONObject {
         return JSONObject()
-            .put("id", id.toString())
-            .put("info", info.toJSONObject())
-            .put("item", transform(item))
+            .put("meta", meta.toJSONObject())
+            .put("value", transform(value))
     }
 
     private fun ByteArray.base64(): String {
@@ -59,26 +82,23 @@ internal class JsonSerializer : Serializer {
         return Base64.getDecoder().decode(this)
     }
 
-    private fun Described<ByteArray>.toJSONObject(): JSONObject {
+    private fun RawPayload.toJSONObject(): JSONObject {
         return JSONObject()
-            .put("id", id.toString())
-            .put("info", info.toJSONObject())
-            .put("item", item.base64())
+            .put("meta", meta.toJSONObject())
+            .put("bytes", bytes.base64())
     }
 
-    private fun <T : Any> JSONObject.toDescribed(transform: (JSONObject) -> T): Described<T> {
-        return Described(
-            id = UUID.fromString(getString("id")),
-            info = getJSONObject("info").toItemInfo(),
-            item = transform(getJSONObject("item")),
+    private fun <T : Any> JSONObject.toPayload(transform: (JSONObject) -> T): Payload<T> {
+        return Payload(
+            meta = getJSONObject("meta").toMetadata(),
+            value = transform(getJSONObject("value")),
         )
     }
 
-    private fun JSONObject.toDescribed(): Described<ByteArray> {
-        return Described(
-            id = UUID.fromString(getString("id")),
-            info = getJSONObject("info").toItemInfo(),
-            item = getString("item").base64(),
+    private fun JSONObject.toDescribed(): RawPayload {
+        return RawPayload(
+            meta = getJSONObject("meta").toMetadata(),
+            bytes = getString("bytes").base64(),
         )
     }
 
@@ -179,6 +199,16 @@ internal class JsonSerializer : Serializer {
         return map
     }
 
+    private fun <K : Any> JSONObject.fromBase64(
+        keys: (String) -> K,
+    ): Map<K, ByteArray> {
+        val map = mutableMapOf<K, ByteArray>()
+        for (key in keys()) {
+            map[keys(key)] = getString(key).base64()
+        }
+        return map
+    }
+
     private fun <K : Any, V: Any> Map<K, V>.toStrings(
         keys: (K) -> String,
         values: (V) -> String,
@@ -200,6 +230,16 @@ internal class JsonSerializer : Serializer {
         return obj
     }
 
+    private fun <K : Any> Map<K, ByteArray>.toBase64(
+        keys: (K) -> String,
+    ): JSONObject {
+        val obj = JSONObject()
+        for ((key, value) in this) {
+            obj.put(keys(key), value.base64())
+        }
+        return obj
+    }
+
     private fun SyncInfo.toJSONObject(): JSONObject {
         return JSONObject()
             .put("deleted", deleted.strings { it.toString() })
@@ -216,99 +256,112 @@ internal class JsonSerializer : Serializer {
     private fun MergeInfo.toJSONObject(): JSONObject {
         return JSONObject()
             .put("deleted", deleted.strings { it.toString() })
-            .put("download", download.strings { it.toString() })
+            .put("downloaded", downloaded.strings { it.toString() })
             .put("items", items.objects { it.toJSONObject() })
     }
 
     private fun JSONObject.toMergeInfo(): MergeInfo {
         return MergeInfo(
             deleted = getJSONArray("deleted").strings(UUID::fromString).toSet(),
-            download = getJSONArray("download").strings(UUID::fromString).toSet(),
+            downloaded = getJSONArray("downloaded").strings(UUID::fromString).toSet(),
             items = getJSONArray("items").objects { it.toDescribed() },
         )
     }
 
     private fun CommitInfo.toJSONObject(): JSONObject {
         return JSONObject()
-            .put("hash", hash)
+            .put("hash", hash.base64())
             .put("deleted", deleted.strings { it.toString() })
             .put("items", items.objects { it.toJSONObject() })
     }
 
     private fun JSONObject.toCommitInfo(): CommitInfo {
         return CommitInfo(
-            hash = getString("hash"),
+            hash = getString("hash").base64(),
             deleted = getJSONArray("deleted").strings(UUID::fromString).toSet(),
             items = getJSONArray("items").objects { it.toDescribed() },
         )
     }
 
     override val remote: Serializer.Remote = object : Serializer.Remote {
+        private val hashesTransformer = HashesTransformer(hf = hf)
+        private val syncResponseDelegate = SyncResponseTransformer(hf = hf)
         override val syncRequest: Transformer<ItemsSyncRequest> = object : Transformer<ItemsSyncRequest> {
-            override fun encode(value: ItemsSyncRequest): ByteArray {
-                return JSONObject()
-                    .put("hashes", value.hashes.toStrings(keys = UUID::toString))
-                    .toString()
-                    .toByteArray()
+            override fun encode(decoded: ItemsSyncRequest): ByteArray {
+                return hashesTransformer.encode(decoded = decoded.hashes)
             }
 
-            override fun decode(bytes: ByteArray): ItemsSyncRequest {
-                val obj = JSONObject(String(bytes))
+            override fun decode(encoded: ByteArray): ItemsSyncRequest {
                 return ItemsSyncRequest(
-                    hashes = obj.getJSONObject("hashes").strings(keys = UUID::fromString),
+                    hashes = hashesTransformer.decode(encoded = encoded),
                 )
             }
         }
 
-        override val needUpdate: Transformer<ItemsSyncResponse.NeedUpdate> = object : Transformer<ItemsSyncResponse.NeedUpdate> {
-            override fun encode(value: ItemsSyncResponse.NeedUpdate): ByteArray {
+        override val syncResponse: Transformer<ItemsSyncResponse> = object : Transformer<ItemsSyncResponse> {
+            override fun encode(decoded: ItemsSyncResponse): ByteArray {
                 return JSONObject()
-                    .put("sessionId", value.sessionId.toString())
-                    .put("syncs", value.syncs.toJSONObject(keys = UUID::toString, values = { it.toJSONObject() }))
+                    .put("sessionId", decoded.sessionId.toString())
+                    .put("delegate", syncResponseDelegate.encode(decoded.delegate).base64())
                     .toString()
                     .toByteArray()
             }
 
-            override fun decode(bytes: ByteArray): ItemsSyncResponse.NeedUpdate {
-                val obj = JSONObject(String(bytes))
-                return ItemsSyncResponse.NeedUpdate(
+            override fun decode(encoded: ByteArray): ItemsSyncResponse {
+                val obj = JSONObject(String(encoded))
+                return ItemsSyncResponse(
                     sessionId = UUID.fromString(obj.getString("sessionId")),
-                    syncs = obj.getJSONObject("syncs").toMap(keys = UUID::fromString, values = { it.toStorageInfo() }),
+                    delegate = syncResponseDelegate.decode(obj.getString("delegate").base64()),
                 )
             }
         }
 
-        override val syncMerge: Transformer<ItemsSyncMergeRequest> = object : Transformer<ItemsSyncMergeRequest> {
-            override fun encode(value: ItemsSyncMergeRequest): ByteArray {
-                val merges = value.merges.toJSONObject(
+        private fun SyncSession.toJSONObject(): JSONObject {
+            return JSONObject()
+                .put("dst", dst.base64())
+                .put("src", src.base64())
+        }
+
+        private fun JSONObject.toSyncSession(): SyncSession {
+            return SyncSession(
+                dst = getString("dst").base64(),
+                src = getString("src").base64(),
+            )
+        }
+
+        override val mergeRequest: Transformer<ItemsMergeRequest> = object : Transformer<ItemsMergeRequest> {
+            override fun encode(decoded: ItemsMergeRequest): ByteArray {
+                val merges = decoded.merges.toJSONObject(
                     keys = UUID::toString,
                     values = { it.toJSONObject() },
                 )
                 return JSONObject()
-                    .put("sessionId", value.sessionId.toString())
+                    .put("sessionId", decoded.sessionId.toString())
                     .put("merges", merges)
+                    .put("syncSession", decoded.syncSession.toJSONObject())
                     .toString()
                     .toByteArray()
             }
 
-            override fun decode(bytes: ByteArray): ItemsSyncMergeRequest {
-                val obj = JSONObject(String(bytes))
+            override fun decode(encoded: ByteArray): ItemsMergeRequest {
+                val obj = JSONObject(String(encoded))
                 val merges = obj
                     .getJSONObject("merges")
                     .toMap(
                         keys = UUID::fromString,
                         values = { it.toMergeInfo() },
                     )
-                return ItemsSyncMergeRequest(
+                return ItemsMergeRequest(
                     sessionId = UUID.fromString(obj.getString("sessionId")),
                     merges = merges,
+                    syncSession = obj.getJSONObject("syncSession").toSyncSession(),
                 )
             }
         }
 
-        override val mergeResponse: Transformer<ItemsSyncMergeResponse> = object : Transformer<ItemsSyncMergeResponse> {
-            override fun encode(value: ItemsSyncMergeResponse): ByteArray {
-                val commits = value.commits.toJSONObject(
+        override val mergeResponse: Transformer<ItemsMergeResponse> = object : Transformer<ItemsMergeResponse> {
+            override fun encode(decoded: ItemsMergeResponse): ByteArray {
+                val commits = decoded.commits.toJSONObject(
                     keys = UUID::toString,
                     values = { it.toJSONObject() },
                 )
@@ -318,13 +371,13 @@ internal class JsonSerializer : Serializer {
                     .toByteArray()
             }
 
-            override fun decode(bytes: ByteArray): ItemsSyncMergeResponse {
-                val obj = JSONObject(String(bytes))
+            override fun decode(encoded: ByteArray): ItemsMergeResponse {
+                val obj = JSONObject(String(encoded))
                 val commits = obj.getJSONObject("commits").toMap(
                     keys = UUID::fromString,
                     values = { it.toCommitInfo() },
                 )
-                return ItemsSyncMergeResponse(
+                return ItemsMergeResponse(
                     commits = commits,
                 )
             }
@@ -332,12 +385,12 @@ internal class JsonSerializer : Serializer {
     }
 
     override val foo = object : Transformer<Foo> {
-        override fun encode(value: Foo): ByteArray {
-            return value.toJSONObject().toString().toByteArray()
+        override fun encode(decoded: Foo): ByteArray {
+            return decoded.toJSONObject().toString().toByteArray()
         }
 
-        override fun decode(bytes: ByteArray): Foo {
-            return JSONObject(String(bytes)).toFoo()
+        override fun decode(encoded: ByteArray): Foo {
+            return JSONObject(String(encoded)).toFoo()
         }
     }
 
@@ -353,12 +406,58 @@ internal class JsonSerializer : Serializer {
     }
 
     override val bar = object : Transformer<Bar> {
-        override fun encode(value: Bar): ByteArray {
-            return value.toJSONObject().toString().toByteArray()
+        override fun encode(decoded: Bar): ByteArray {
+            return decoded.toJSONObject().toString().toByteArray()
         }
 
-        override fun decode(bytes: ByteArray): Bar {
-            return JSONObject(String(bytes)).toBar()
+        override fun decode(encoded: ByteArray): Bar {
+            return JSONObject(String(encoded)).toBar()
+        }
+    }
+
+    private fun Pic.toJSONObject(): JSONObject {
+        return JSONObject()
+            .put("title", title)
+            .put("fd", fd?.toJSONObject())
+    }
+
+    private fun JSONObject.toPic(): Pic {
+        return Pic(
+            title = getString("title"),
+            fd = if (has("fd")) getJSONObject("fd").toFileDelegate() else null,
+        )
+    }
+
+    override val pics = object : Transformer<Pic> {
+        override fun decode(encoded: ByteArray): Pic {
+            return JSONObject(String(encoded)).toPic()
+        }
+
+        override fun encode(decoded: Pic): ByteArray {
+            return decoded.toJSONObject().toString().toByteArray()
+        }
+    }
+
+    private fun FileDelegate.toJSONObject(): JSONObject {
+        return JSONObject()
+            .put("hash", hash.base64())
+            .put("size", size)
+    }
+
+    private fun JSONObject.toFileDelegate(): FileDelegate {
+        return FileDelegate(
+            hash = getString("hash").base64(),
+            size = getInt("size"),
+        )
+    }
+
+    override val fds = object : Transformer<FileDelegate> {
+        override fun decode(encoded: ByteArray): FileDelegate {
+            return JSONObject(String(encoded)).toFileDelegate()
+        }
+
+        override fun encode(decoded: FileDelegate): ByteArray {
+            return decoded.toJSONObject().toString().toByteArray()
         }
     }
 }

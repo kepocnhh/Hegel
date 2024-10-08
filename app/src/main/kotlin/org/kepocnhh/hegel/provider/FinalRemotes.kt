@@ -1,18 +1,17 @@
 package org.kepocnhh.hegel.provider
 
 import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
-import org.kepocnhh.hegel.entity.ItemsSyncMergeRequest
-import org.kepocnhh.hegel.entity.ItemsSyncMergeResponse
-import org.kepocnhh.hegel.entity.ItemsSyncRequest
-import org.kepocnhh.hegel.entity.ItemsSyncResponse
+import org.kepocnhh.hegel.provider.okhttp.OkHttpFilesRemotes
 import org.kepocnhh.hegel.provider.okhttp.OkHttpItemsRemotes
+import org.kepocnhh.hegel.provider.okhttp.OkHttpTLSTransmitter
+import sp.kx.http.TLSEnvironment
 import java.net.URL
 import java.util.concurrent.TimeUnit
 
 internal class FinalRemotes(
     private val serializer: Serializer,
+    private val tls: TLSEnvironment,
+    private val loggers: Loggers,
 ) : Remotes {
     private val client = OkHttpClient.Builder()
         .callTimeout(5, TimeUnit.SECONDS)
@@ -21,11 +20,26 @@ internal class FinalRemotes(
         .writeTimeout(5, TimeUnit.SECONDS)
         .build()
 
-    override fun items(url: URL): ItemsRemotes {
+    override fun items(address: URL): ItemsRemotes {
         return OkHttpItemsRemotes(
-            client = client,
+            tlsTransmitter = OkHttpTLSTransmitter(
+                client = client,
+                address = address,
+                tls = tls,
+            ),
+            loggers = loggers,
             serializer = serializer,
-            url = url,
+        )
+    }
+
+    override fun files(address: URL): FilesRemotes {
+        return OkHttpFilesRemotes(
+            tlsTransmitter = OkHttpTLSTransmitter(
+                client = client,
+                address = address,
+                tls = tls,
+            ),
+            loggers = loggers,
         )
     }
 }

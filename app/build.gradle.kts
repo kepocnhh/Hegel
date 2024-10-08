@@ -14,6 +14,7 @@ repositories {
 plugins {
     id("com.android.application")
     id("kotlin-android")
+    id("org.jetbrains.compose") version Version.compose
 }
 
 fun ComponentIdentity.getVersion(): String {
@@ -46,8 +47,8 @@ android {
         applicationId = namespace
         minSdk = Version.Android.minSdk
         targetSdk = Version.Android.targetSdk
-        versionCode = 10
-        versionName = "0.4.1"
+        versionCode = 17
+        versionName = "0.9.0"
         manifestPlaceholders["appName"] = "@string/app_name"
     }
 
@@ -66,7 +67,7 @@ android {
         buildConfig = true
     }
 
-    composeOptions.kotlinCompilerExtensionVersion = Version.Android.compose
+    composeOptions.kotlinCompilerExtensionVersion = "1.5.14"
 
     productFlavors {
         "device".also { dimension ->
@@ -107,6 +108,9 @@ androidComponents.onVariants { variant ->
                 val applicationId by variant.applicationId
                 val expected = setOf(
                     "android.permission.INTERNET",
+                    "android.permission.FOREGROUND_SERVICE",
+                    "android.permission.FOREGROUND_SERVICE_DATA_SYNC",
+                    "android.permission.POST_NOTIFICATIONS",
                     "$applicationId.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
                 )
                 check(actual.sorted() == expected.sorted()) {
@@ -121,14 +125,17 @@ androidComponents.onVariants { variant ->
 }
 
 dependencies {
-    debugImplementation("androidx.compose.ui:ui-tooling:${Version.Android.compose}")
-    debugImplementation("androidx.compose.ui:ui-tooling-preview:${Version.Android.compose}")
+    debugImplementation("androidx.compose.ui:ui-tooling:${Version.compose}")
+    debugImplementation("androidx.compose.ui:ui-tooling-preview:${Version.compose}")
     debugImplementation("androidx.wear:wear-tooling-preview:1.0.0")
-    implementation("androidx.appcompat:appcompat:1.6.1")
-    implementation("androidx.compose.foundation:foundation:${Version.Android.compose}")
+    implementation("androidx.activity:activity-compose:1.9.1")
+    implementation("androidx.appcompat:appcompat:1.7.0")
+    implementation(compose.foundation)
     implementation("androidx.security:security-crypto:1.0.0")
+    implementation("com.github.kepocnhh:Bytes:0.2.1-SNAPSHOT")
+    implementation("com.github.kepocnhh:HttpReceiver:0.1.1u-SNAPSHOT")
     implementation("com.github.kepocnhh:Logics:0.1.3-SNAPSHOT")
-    implementation("com.github.kepocnhh:Storages:0.4.2u-SNAPSHOT")
+    implementation("com.github.kepocnhh:Storages:0.9.0u-SNAPSHOT")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     "watchImplementation"("androidx.wear.compose:compose-foundation:1.3.1")
 }

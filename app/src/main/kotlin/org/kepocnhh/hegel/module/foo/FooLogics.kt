@@ -6,8 +6,9 @@ import kotlinx.coroutines.withContext
 import org.kepocnhh.hegel.entity.Foo
 import org.kepocnhh.hegel.module.app.Injection
 import sp.kx.logics.Logics
-import sp.kx.storages.Described
 import sp.kx.storages.MutableStorage
+import sp.kx.storages.Payload
+import sp.kx.storages.require
 import java.util.UUID
 
 internal class FooLogics(
@@ -18,7 +19,7 @@ internal class FooLogics(
     )
 
     data class Items(
-        val list: List<Described<Foo>>,
+        val list: List<Payload<Foo>>,
     )
 
     private val logger = injection.loggers.create("[Foo]")
@@ -34,7 +35,7 @@ internal class FooLogics(
     fun requestItems() = launch {
         _state.value = State(loading = true)
         val list = withContext(injection.contexts.default) {
-            getStorage().items.sortedBy { it.info.created }
+            getStorage().items.sortedBy { it.meta.created }
         }
         _items.value = Items(list = list)
         _state.value = State(loading = false)
@@ -46,7 +47,7 @@ internal class FooLogics(
             getStorage().delete(id = id)
         }
         val list = withContext(injection.contexts.default) {
-            getStorage().items.sortedBy { it.info.created }
+            getStorage().items.sortedBy { it.meta.created }
         }
         _items.value = Items(list = list)
         _state.value = State(loading = false)
@@ -58,7 +59,7 @@ internal class FooLogics(
             getStorage().add(Foo(text = text))
         }
         val list = withContext(injection.contexts.default) {
-            getStorage().items.sortedBy { it.info.created }
+            getStorage().items.sortedBy { it.meta.created }
         }
         _items.value = Items(list = list)
         _state.value = State(loading = false)
@@ -70,7 +71,7 @@ internal class FooLogics(
             getStorage().update(id = id, Foo(text = text))
         }
         val list = withContext(injection.contexts.default) {
-            getStorage().items.sortedBy { it.info.created }
+            getStorage().items.sortedBy { it.meta.created }
         }
         _items.value = Items(list = list)
         _state.value = State(loading = false)

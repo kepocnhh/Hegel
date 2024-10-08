@@ -4,7 +4,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import org.kepocnhh.hegel.App
-import org.kepocnhh.hegel.util.compose.BackHandler
 import java.util.UUID
 
 @Composable

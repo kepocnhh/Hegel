@@ -1,19 +1,22 @@
 package org.kepocnhh.hegel.module.transmitter
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -23,7 +26,6 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import org.kepocnhh.hegel.App
-import org.kepocnhh.hegel.util.compose.BackHandler
 import org.kepocnhh.hegel.util.compose.Button
 
 @Composable
@@ -33,8 +35,9 @@ internal fun TransmitterScreen(
     savedSpec: String?,
     onSync: (String) -> Unit,
 ) {
-    BackHandler(block = onBack)
-    val addressState = remember { mutableStateOf("") }
+    BackHandler(onBack = onBack)
+    val insets = WindowInsets.systemBars.asPaddingValues()
+    val addressState = remember { mutableStateOf("192.168.88.217:40631") }
     LaunchedEffect(savedSpec) {
         if (!savedSpec.isNullOrBlank()) {
             addressState.value = savedSpec
@@ -48,7 +51,7 @@ internal fun TransmitterScreen(
     ) {
         Box(
             modifier = Modifier
-                .padding(App.Theme.insets)
+                .padding(insets)
                 .fillMaxSize(),
         ) {
             Column(

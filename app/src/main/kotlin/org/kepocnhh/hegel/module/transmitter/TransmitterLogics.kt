@@ -5,16 +5,17 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
-import org.kepocnhh.hegel.entity.ItemsSyncMergeRequest
-import org.kepocnhh.hegel.entity.ItemsSyncMergeResponse
+import org.kepocnhh.hegel.entity.ItemsMergeRequest
+import org.kepocnhh.hegel.entity.ItemsMergeResponse
 import org.kepocnhh.hegel.entity.ItemsSyncRequest
 import org.kepocnhh.hegel.entity.ItemsSyncResponse
+import org.kepocnhh.hegel.entity.NotModifiedException
 import org.kepocnhh.hegel.module.app.Injection
+import org.kepocnhh.hegel.util.toHEX
 import sp.kx.logics.Logics
-import sp.kx.storages.MergeInfo
-import java.net.URI
+import sp.kx.storages.SyncResponse
+import sp.kx.storages.SyncSession
 import java.net.URL
-import java.util.UUID
 
 internal class TransmitterLogics(
     private val injection: Injection,
@@ -40,36 +41,37 @@ internal class TransmitterLogics(
     private val _broadcast = MutableSharedFlow<Broadcast>()
     val broadcast = _broadcast.asSharedFlow()
 
-    private suspend fun itemsMerge(response: ItemsSyncMergeResponse) {
+    private suspend fun itemsMerge(syncSession: SyncSession, response: ItemsMergeResponse) {
         logger.debug("items merge...")
         withContext(injection.contexts.default) {
-            injection.storages.commit(infos = response.commits)
+            injection.storages.commit(session = syncSession, infos = response.commits)
         }
         _state.value = State(loading = false)
         _broadcast.emit(Broadcast.OnSync(Result.success(Unit)))
     }
 
-    private suspend fun onNeedUpdate(response: ItemsSyncResponse.NeedUpdate) {
+    private suspend fun onItemsSyncResponse(response: ItemsSyncResponse) {
         logger.debug("need update...")
-        logger.debug("syncs: ${response.syncs.map { (storageId, info) -> storageId to info.infos.map { (id, i) -> id to i.hash } }}") // todo
+        logger.debug("syncs: ${response.delegate.infos.mapValues { (_, si) -> si.infos.mapValues { (_, ii) -> ii.hash.toHEX() } }}") // todo
         val merges = withContext(injection.contexts.default) {
-            injection.storages.getMergeInfo(infos = response.syncs)
+            injection.storages.getMergeInfo(session = response.delegate.session, infos = response.delegate.infos)
         }
         withContext(injection.contexts.default) {
             runCatching {
-                val request = ItemsSyncMergeRequest(
+                val request = ItemsMergeRequest(
                     sessionId = response.sessionId,
+                    syncSession = response.delegate.session,
                     merges = merges,
                 )
                 merges.forEach { (storageId, mergeInfo) ->
-                    logger.debug("upload[$storageId]: " + mergeInfo.items.map { it.id }) // todo
+                    logger.debug("upload[$storageId]: " + mergeInfo.items.map { it.meta.id }) // todo
                 } // todo
-                val url = injection.locals.address ?: TODO()
-                injection.remotes.items(url = url).merge(request)
+                val address = injection.locals.address ?: TODO()
+                injection.remotes.items(address = address).merge(request)
             }
         }.fold(
             onSuccess = {
-                itemsMerge(response = it)
+                itemsMerge(syncSession = response.delegate.session, response = it)
             },
             onFailure = { error ->
                 logger.warning("items merge: $error")
@@ -79,26 +81,12 @@ internal class TransmitterLogics(
         )
     }
 
-    private suspend fun onResponse(response: ItemsSyncResponse) {
-        when (response) {
-            ItemsSyncResponse.NotModified -> {
-                logger.debug("not modified")
-                _state.value = State(loading = false)
-                _broadcast.emit(Broadcast.OnSync(Result.success(Unit)))
-                return
-            }
-            is ItemsSyncResponse.NeedUpdate -> {
-                onNeedUpdate(response)
-            }
-        }
-    }
-
     private suspend fun itemsSync(url: URL) {
         logger.debug("items sync...")
         withContext(injection.contexts.default) {
             runCatching {
                 val request = ItemsSyncRequest(hashes = injection.storages.hashes())
-                logger.debug("hashes: ${request.hashes}")
+                logger.debug("hashes: ${request.hashes.mapValues { (_, it) -> it.toHEX() }}")
                 injection.remotes.items(url).sync(request)
             }
         }.fold(
@@ -106,12 +94,21 @@ internal class TransmitterLogics(
                 withContext(injection.contexts.default) {
                     injection.locals.address = url
                 }
-                onResponse(response)
+                onItemsSyncResponse(response)
             },
             onFailure = { error ->
-                logger.warning("sync items: $error")
-                _state.value = State(loading = false)
-                _broadcast.emit(Broadcast.OnSync(Result.failure(error)))
+                when (error) {
+                    is NotModifiedException -> {
+                        logger.debug("not modified")
+                        _state.value = State(loading = false)
+                        _broadcast.emit(Broadcast.OnSync(Result.success(Unit)))
+                    }
+                    else -> {
+                        logger.warning("sync items: $error")
+                        _state.value = State(loading = false)
+                        _broadcast.emit(Broadcast.OnSync(Result.failure(error)))
+                    }
+                }
             },
         )
     }
