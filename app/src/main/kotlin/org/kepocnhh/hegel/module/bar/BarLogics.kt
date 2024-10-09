@@ -41,16 +41,14 @@ internal class BarLogics(
             .map { parent ->
                 val relations = injection.storages
                     .require<Bar2Baz>()
-                    .items
                     .filter { it.value.bar == parent.meta.id }
                 BarView(
                     parent = parent,
-                    children = injection.storages.require<Baz>().items.filter { child ->
+                    children = injection.storages.require<Baz>().filter { child ->
                         relations.any { it.value.baz == child.meta.id }
-                    }.sortedBy { it.meta.created },
+                    },
                 )
             }
-            .sortedBy { it.parent.meta.created }
     }
 
     fun requestItems() = launch {
@@ -65,7 +63,7 @@ internal class BarLogics(
     fun deleteItem(id: UUID) = launch {
         _state.value = State(loading = true)
         withContext(injection.contexts.default) {
-            val parent = injection.storages.require<Bar>().items.firstOrNull { it.meta.id == id } ?: TODO("No payload by ID: $id")
+            val parent = injection.storages.require<Bar>().require(id = id)
             for (relation in injection.storages.require<Bar2Baz>().items) {
                 if (relation.value.bar != parent.meta.id) continue
                 injection.storages.require<Bar2Baz>().delete(relation.meta.id)
@@ -102,7 +100,7 @@ internal class BarLogics(
     fun updateItem(id: UUID, count: Int) = launch {
         _state.value = State(loading = true)
         withContext(injection.contexts.default) {
-            val payload = injection.storages.require<Bar>().items.firstOrNull { it.meta.id == id } ?: TODO("No payload by ID: $id")
+            val payload = injection.storages.require<Bar>().require(id = id)
             injection.storages.require<Bar>().update(id = id, payload.value.copy(count = count))
         }
         val list = withContext(injection.contexts.default) {

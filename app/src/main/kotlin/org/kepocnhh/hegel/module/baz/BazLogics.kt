@@ -31,7 +31,7 @@ internal class BazLogics(
     fun requestItems() = launch {
         _state.value = State(loading = true)
         val list = withContext(injection.contexts.default) {
-            injection.storages.require<Baz>().items.sortedBy { it.meta.created }
+            injection.storages.require<Baz>().items
         }
         _items.value = Items(list = list)
         _state.value = State(loading = false)
@@ -41,7 +41,7 @@ internal class BazLogics(
         logger.debug("delete $id")
         _state.value = State(loading = true)
         withContext(injection.contexts.default) {
-            val payload = injection.storages.require<Baz>().items.firstOrNull { it.meta.id == id } ?: TODO("No payload by ID: $id")
+            val payload = injection.storages.require<Baz>().require(id = id)
             for (relation in injection.storages.require<Bar2Baz>().items) {
                 if (relation.value.baz != payload.meta.id) continue
                 logger.debug("delete relation with ${relation.value.bar}")
@@ -50,7 +50,7 @@ internal class BazLogics(
             injection.storages.require<Baz>().delete(id = id)
         }
         val list = withContext(injection.contexts.default) {
-            injection.storages.require<Baz>().items.sortedBy { it.meta.created }
+            injection.storages.require<Baz>().items
         }
         _items.value = Items(list = list)
         _state.value = State(loading = false)
