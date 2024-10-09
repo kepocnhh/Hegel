@@ -8,7 +8,6 @@ import org.kepocnhh.hegel.entity.Bar2Baz
 import org.kepocnhh.hegel.entity.Baz
 import org.kepocnhh.hegel.module.app.Injection
 import sp.kx.logics.Logics
-import sp.kx.storages.MutableStorage
 import sp.kx.storages.Payload
 import sp.kx.storages.require
 import java.util.UUID
@@ -20,8 +19,13 @@ internal class BarLogics(
         val loading: Boolean,
     )
 
+    data class BarView(
+        val parent: Payload<Bar>,
+        val children: List<Payload<Baz>>,
+    )
+
     data class Items(
-        val list: List<Payload<Bar>>,
+        val list: List<BarView>,
     )
 
     private val logger = injection.loggers.create("[Bar]")
@@ -30,10 +34,29 @@ internal class BarLogics(
     private val _items = MutableStateFlow<Items?>(null)
     val items = _items.asStateFlow()
 
+    private fun getItems(): List<BarView> {
+        return injection.storages
+            .require<Bar>()
+            .items
+            .map { parent ->
+                val relations = injection.storages
+                    .require<Bar2Baz>()
+                    .items
+                    .filter { it.value.bar == parent.meta.id }
+                BarView(
+                    parent = parent,
+                    children = injection.storages.require<Baz>().items.filter { child ->
+                        relations.any { it.value.baz == child.meta.id }
+                    }.sortedBy { it.meta.created },
+                )
+            }
+            .sortedBy { it.parent.meta.created }
+    }
+
     fun requestItems() = launch {
         _state.value = State(loading = true)
         val list = withContext(injection.contexts.default) {
-            injection.storages.require<Bar>().items.sortedBy { it.meta.created }
+            getItems()
         }
         _items.value = Items(list = list)
         _state.value = State(loading = false)
@@ -42,10 +65,16 @@ internal class BarLogics(
     fun deleteItem(id: UUID) = launch {
         _state.value = State(loading = true)
         withContext(injection.contexts.default) {
+            val parent = injection.storages.require<Bar>().items.firstOrNull { it.meta.id == id } ?: TODO("No payload by ID: $id")
+            for (relation in injection.storages.require<Bar2Baz>().items) {
+                if (relation.value.bar != parent.meta.id) continue
+                injection.storages.require<Bar2Baz>().delete(relation.meta.id)
+                injection.storages.require<Baz>().delete(relation.value.baz)
+            }
             injection.storages.require<Bar>().delete(id = id)
         }
         val list = withContext(injection.contexts.default) {
-            injection.storages.require<Bar>().items.sortedBy { it.meta.created }
+            getItems()
         }
         _items.value = Items(list = list)
         _state.value = State(loading = false)
@@ -64,7 +93,7 @@ internal class BarLogics(
             }
         }
         val list = withContext(injection.contexts.default) {
-            injection.storages.require<Bar>().items.sortedBy { it.meta.created }
+            getItems()
         }
         _items.value = Items(list = list)
         _state.value = State(loading = false)
@@ -77,7 +106,7 @@ internal class BarLogics(
             injection.storages.require<Bar>().update(id = id, payload.value.copy(count = count))
         }
         val list = withContext(injection.contexts.default) {
-            injection.storages.require<Bar>().items.sortedBy { it.meta.created }
+            getItems()
         }
         _items.value = Items(list = list)
         _state.value = State(loading = false)

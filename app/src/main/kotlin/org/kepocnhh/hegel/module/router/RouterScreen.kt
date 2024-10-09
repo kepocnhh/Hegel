@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.Color
 import org.kepocnhh.hegel.App
 import org.kepocnhh.hegel.module.auth.AuthScreen
 import org.kepocnhh.hegel.module.bar.BarScreen
+import org.kepocnhh.hegel.module.baz.BazScreen
 import org.kepocnhh.hegel.module.enter.EnterScreen
 import org.kepocnhh.hegel.module.foo.FooScreen
 import org.kepocnhh.hegel.module.main.MainScreen
@@ -26,6 +27,7 @@ internal fun RouterScreen(onLock: () -> Unit) {
     when (state.value) {
         MainScreen.State.Foo -> FooScreen(onBack = { state.value = null })
         MainScreen.State.Bar -> BarScreen(onBack = { state.value = null })
+        MainScreen.State.Baz -> BazScreen(onBack = { state.value = null })
         MainScreen.State.Pics -> PicsScreen(onBack = { state.value = null })
         MainScreen.State.Receiver -> ReceiverScreen(onBack = { state.value = null })
         MainScreen.State.Transmitter -> TransmitterScreen(onBack = { state.value = null })

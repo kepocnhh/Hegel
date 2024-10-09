@@ -1,4 +1,4 @@
-package org.kepocnhh.hegel.module.bar
+package org.kepocnhh.hegel.module.baz
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -21,18 +21,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
-import org.kepocnhh.hegel.App
 import java.util.Date
 import java.util.UUID
 
 @Composable
-internal fun BarScreen(
+internal fun BazScreen(
     onBack: () -> Unit,
-    state: BarLogics.State,
-    items: BarLogics.Items,
+    state: BazLogics.State,
+    items: BazLogics.Items,
     onDelete: (UUID) -> Unit,
-    onAdd: () -> Unit,
-    onUpdate: (UUID) -> Unit,
 ) {
     BackHandler(onBack = onBack)
     Box(
@@ -44,23 +41,19 @@ internal fun BarScreen(
         LazyColumn(
             contentPadding = insets,
         ) {
-            items.list.forEachIndexed { index, view ->
+            items.list.forEachIndexed { index, payload ->
                 item(
-                    key = view.parent.meta.id,
+                    key = payload.meta.id,
                 ) {
                     Row(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                onUpdate(view.parent.meta.id)
-                            },
+                            .fillMaxWidth(),
                     ) {
                         val text = """
-                            $index) |${view.parent.value.count}|
-                            id: ${view.parent.meta.id}
-                            created: ${Date(view.parent.meta.created.inWholeMilliseconds)}
-                            updated: ${Date(view.parent.meta.info.updated.inWholeMilliseconds)}
-                            children(${view.children.size}): ${view.children.map { it.meta.id.toString().substring(0 until 8) }}
+                            $index) ${payload.meta.id}
+                            ${payload.value.title}
+                            created: ${Date(payload.meta.created.inWholeMilliseconds)}
+                            updated: ${Date(payload.meta.info.updated.inWholeMilliseconds)}
                         """.trimIndent()
                         BasicText(
                             modifier = Modifier
@@ -72,7 +65,7 @@ internal fun BarScreen(
                                 .background(Color.Black)
                                 .padding(16.dp)
                                 .clickable(enabled = !state.loading) {
-                                    onDelete(view.parent.meta.id)
+                                    onDelete(payload.meta.id)
                                 },
                             text = "x",
                             style = TextStyle(color = Color.White),
@@ -99,16 +92,6 @@ internal fun BarScreen(
                     )
                 }
                 Spacer(modifier = Modifier.weight(1f))
-                BasicText(
-                    modifier = Modifier
-                        .background(Color.Black)
-                        .padding(16.dp)
-                        .clickable(enabled = !state.loading) {
-                            onAdd()
-                        },
-                    text = "+",
-                    style = TextStyle(color = Color.White),
-                )
             }
         }
     }
