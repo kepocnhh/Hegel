@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
@@ -45,30 +46,42 @@ internal fun BazScreen(
                 item(
                     key = payload.meta.id,
                 ) {
-                    Row(
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth(),
                     ) {
-                        val text = """
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth(),
+                        ) {
+                            val text = """
                             $index) ${payload.meta.id}
                             ${payload.value.title}
                             created: ${Date(payload.meta.created.inWholeMilliseconds)}
                             updated: ${Date(payload.meta.info.updated.inWholeMilliseconds)}
                         """.trimIndent()
-                        BasicText(
+                            BasicText(
+                                modifier = Modifier
+                                    .weight(1f),
+                                text = text,
+                            )
+                            BasicText(
+                                modifier = Modifier
+                                    .background(Color.Black)
+                                    .padding(16.dp)
+                                    .clickable(enabled = !state.loading) {
+                                        onDelete(payload.meta.id)
+                                    },
+                                text = "x",
+                                style = TextStyle(color = Color.White),
+                            )
+                        }
+                        Spacer(
                             modifier = Modifier
-                                .weight(1f),
-                            text = text,
-                        )
-                        BasicText(
-                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(1.dp)
                                 .background(Color.Black)
-                                .padding(16.dp)
-                                .clickable(enabled = !state.loading) {
-                                    onDelete(payload.meta.id)
-                                },
-                            text = "x",
-                            style = TextStyle(color = Color.White),
+                                .align(Alignment.BottomCenter),
                         )
                     }
                 }
