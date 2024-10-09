@@ -135,7 +135,7 @@ dependencies {
     implementation("com.github.kepocnhh:Bytes:0.2.1-SNAPSHOT")
     implementation("com.github.kepocnhh:HttpReceiver:0.1.1u-SNAPSHOT")
     implementation("com.github.kepocnhh:Logics:0.1.3-SNAPSHOT")
-    implementation("com.github.kepocnhh:Storages:0.9.0u-SNAPSHOT")
+    implementation("com.github.kepocnhh:Storages:0.9.2u-SNAPSHOT")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     "watchImplementation"("androidx.wear.compose:compose-foundation:1.3.1")
 }
