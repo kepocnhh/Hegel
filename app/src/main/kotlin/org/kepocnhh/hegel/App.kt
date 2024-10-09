@@ -44,10 +44,11 @@ internal class App : Application() {
             }
         }
         val storages = SyncStreamsStorages.Builder()
-            .add(UUID.fromString("84e44670-d301-471b-a7ac-dfd8b1e55554"), serializer.foo)
-            .add(UUID.fromString("6c7a0b49-89e9-45ee-945c-0faad06a3df7"), serializer.bar)
-            .add(UUID.fromString("10000000-89e9-45ee-945c-000000000001"), serializer.pics)
-            .add(UUID.fromString("20000000-89e9-45ee-945c-000000000002"), serializer.fds)
+            .add(UUID.fromString("10000000-89e9-45ee-945c-000000000001"), serializer.foo)
+            .add(UUID.fromString("21000000-89e9-45ee-945c-000000000021"), serializer.bar)
+            .add(UUID.fromString("22000000-89e9-45ee-945c-000000000022"), serializer.baz)
+            .add(UUID.fromString("23000000-89e9-45ee-945c-000000000023"), serializer.bar2baz)
+            .add(UUID.fromString("30000000-89e9-45ee-945c-000000000003"), serializer.pics)
             .build(
                 hf = hf,
                 env = env,

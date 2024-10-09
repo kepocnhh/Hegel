@@ -3,6 +3,8 @@ package org.kepocnhh.hegel.provider
 import org.json.JSONArray
 import org.json.JSONObject
 import org.kepocnhh.hegel.entity.Bar
+import org.kepocnhh.hegel.entity.Bar2Baz
+import org.kepocnhh.hegel.entity.Baz
 import org.kepocnhh.hegel.entity.FileDelegate
 import org.kepocnhh.hegel.entity.Foo
 import org.kepocnhh.hegel.entity.ItemsMergeRequest
@@ -451,12 +453,46 @@ internal class JsonSerializer(
         )
     }
 
-    override val fds = object : Transformer<FileDelegate> {
-        override fun decode(encoded: ByteArray): FileDelegate {
-            return JSONObject(String(encoded)).toFileDelegate()
+    private fun Baz.toJSONObject(): JSONObject {
+        return JSONObject()
+            .put("title", title)
+    }
+
+    private fun JSONObject.toBaz(): Baz {
+        return Baz(
+            title = getString("title"),
+        )
+    }
+
+    override val baz = object : Transformer<Baz> {
+        override fun decode(encoded: ByteArray): Baz {
+            return JSONObject(String(encoded)).toBaz()
         }
 
-        override fun encode(decoded: FileDelegate): ByteArray {
+        override fun encode(decoded: Baz): ByteArray {
+            return decoded.toJSONObject().toString().toByteArray()
+        }
+    }
+
+    private fun Bar2Baz.toJSONObject(): JSONObject {
+        return JSONObject()
+            .put("bar", bar)
+            .put("baz", baz)
+    }
+
+    private fun JSONObject.toBar2Baz(): Bar2Baz {
+        return Bar2Baz(
+            bar = UUID.fromString(getString("bar")),
+            baz = UUID.fromString(getString("baz")),
+        )
+    }
+
+    override val bar2baz = object : Transformer<Bar2Baz> {
+        override fun decode(encoded: ByteArray): Bar2Baz {
+            return JSONObject(String(encoded)).toBar2Baz()
+        }
+
+        override fun encode(decoded: Bar2Baz): ByteArray {
             return decoded.toJSONObject().toString().toByteArray()
         }
     }

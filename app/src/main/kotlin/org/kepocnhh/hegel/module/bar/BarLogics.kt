@@ -4,6 +4,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import org.kepocnhh.hegel.entity.Bar
+import org.kepocnhh.hegel.entity.Bar2Baz
+import org.kepocnhh.hegel.entity.Baz
 import org.kepocnhh.hegel.module.app.Injection
 import sp.kx.logics.Logics
 import sp.kx.storages.MutableStorage
@@ -28,14 +30,10 @@ internal class BarLogics(
     private val _items = MutableStateFlow<Items?>(null)
     val items = _items.asStateFlow()
 
-    private fun getStorage(): MutableStorage<Bar> {
-        return injection.storages.require()
-    }
-
     fun requestItems() = launch {
         _state.value = State(loading = true)
         val list = withContext(injection.contexts.default) {
-            getStorage().items.sortedBy { it.meta.created }
+            injection.storages.require<Bar>().items.sortedBy { it.meta.created }
         }
         _items.value = Items(list = list)
         _state.value = State(loading = false)
@@ -44,10 +42,10 @@ internal class BarLogics(
     fun deleteItem(id: UUID) = launch {
         _state.value = State(loading = true)
         withContext(injection.contexts.default) {
-            getStorage().delete(id = id)
+            injection.storages.require<Bar>().delete(id = id)
         }
         val list = withContext(injection.contexts.default) {
-            getStorage().items.sortedBy { it.meta.created }
+            injection.storages.require<Bar>().items.sortedBy { it.meta.created }
         }
         _items.value = Items(list = list)
         _state.value = State(loading = false)
@@ -56,10 +54,17 @@ internal class BarLogics(
     fun addItem(count: Int) = launch {
         _state.value = State(loading = true)
         withContext(injection.contexts.default) {
-            getStorage().add(Bar(count = count))
+            val bar = Bar(count = count)
+            val payload = injection.storages.require<Bar>().add(bar)
+            for (i in 0 until (count % 3 + 1)) {
+                val baz = Baz(title = "$i of ${payload.meta.id.toString().substring(0 until 8)}")
+                val child = injection.storages.require<Baz>().add(baz)
+                val relation = Bar2Baz(bar = payload.meta.id, baz = child.meta.id)
+                injection.storages.require<Bar2Baz>().add(relation)
+            }
         }
         val list = withContext(injection.contexts.default) {
-            getStorage().items.sortedBy { it.meta.created }
+            injection.storages.require<Bar>().items.sortedBy { it.meta.created }
         }
         _items.value = Items(list = list)
         _state.value = State(loading = false)
@@ -68,10 +73,11 @@ internal class BarLogics(
     fun updateItem(id: UUID, count: Int) = launch {
         _state.value = State(loading = true)
         withContext(injection.contexts.default) {
-            getStorage().update(id = id, Bar(count = count))
+            val payload = injection.storages.require<Bar>().items.firstOrNull { it.meta.id == id } ?: TODO("No payload by ID: $id")
+            injection.storages.require<Bar>().update(id = id, payload.value.copy(count = count))
         }
         val list = withContext(injection.contexts.default) {
-            getStorage().items.sortedBy { it.meta.created }
+            injection.storages.require<Bar>().items.sortedBy { it.meta.created }
         }
         _items.value = Items(list = list)
         _state.value = State(loading = false)
