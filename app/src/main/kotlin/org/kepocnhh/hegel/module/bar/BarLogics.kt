@@ -35,10 +35,10 @@ internal class BarLogics(
     val items = _items.asStateFlow()
 
     private fun getItems(): List<BarView> {
-        val bars = injection.storages.require<Bar>()
-        val bazs = injection.storages.require<Baz>()
-        val b2bs = injection.storages.require<Bar2Baz>()
-        return bars.items.map { parent ->
+        val bars = injection.storages.require<Bar>().items
+        val bazs = injection.storages.require<Baz>().items
+        val b2bs = injection.storages.require<Bar2Baz>().items
+        return bars.map { parent ->
             val relations = b2bs.filter { it.value.bar == parent.meta.id }
             BarView(
                 parent = parent,
