@@ -41,13 +41,16 @@ internal class BazLogics(
         logger.debug("delete $id")
         _state.value = State(loading = true)
         withContext(injection.contexts.default) {
-            val payload = injection.storages.require<Baz>().require(id = id)
-            for (relation in injection.storages.require<Bar2Baz>().items) {
+            val bazs = injection.storages.require<Baz>()
+            val b2bs = injection.storages.require<Bar2Baz>()
+            val payload = bazs.require(id = id)
+            val ids = mutableMapOf(bazs.id to mutableSetOf(id))
+            for (relation in b2bs.items) {
                 if (relation.value.baz != payload.meta.id) continue
                 logger.debug("delete relation with ${relation.value.bar}")
-                injection.storages.require<Bar2Baz>().delete(id = relation.meta.id)
+                ids.getOrPut(b2bs.id, ::mutableSetOf).add(relation.meta.id)
             }
-            injection.storages.require<Baz>().delete(id = id)
+            injection.storages.delete(ids = ids)
         }
         val list = withContext(injection.contexts.default) {
             injection.storages.require<Baz>().items

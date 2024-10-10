@@ -35,20 +35,18 @@ internal class BarLogics(
     val items = _items.asStateFlow()
 
     private fun getItems(): List<BarView> {
-        return injection.storages
-            .require<Bar>()
-            .items
-            .map { parent ->
-                val relations = injection.storages
-                    .require<Bar2Baz>()
-                    .filter { it.value.bar == parent.meta.id }
-                BarView(
-                    parent = parent,
-                    children = injection.storages.require<Baz>().filter { child ->
-                        relations.any { it.value.baz == child.meta.id }
-                    },
-                )
-            }
+        val bars = injection.storages.require<Bar>()
+        val bazs = injection.storages.require<Baz>()
+        val b2bs = injection.storages.require<Bar2Baz>()
+        return bars.items.map { parent ->
+            val relations = b2bs.filter { it.value.bar == parent.meta.id }
+            BarView(
+                parent = parent,
+                children = bazs.filter { child ->
+                    relations.any { it.value.baz == child.meta.id }
+                },
+            )
+        }
     }
 
     fun requestItems() = launch {
@@ -63,13 +61,18 @@ internal class BarLogics(
     fun deleteItem(id: UUID) = launch {
         _state.value = State(loading = true)
         withContext(injection.contexts.default) {
-            val parent = injection.storages.require<Bar>().require(id = id)
-            for (relation in injection.storages.require<Bar2Baz>().items) {
+            val bars = injection.storages.require<Bar>()
+            val bazs = injection.storages.require<Baz>()
+            val b2bs = injection.storages.require<Bar2Baz>()
+            val parent = bars.require(id = id)
+            val ids = mutableMapOf(bars.id to mutableSetOf(id))
+            for (relation in b2bs.items) {
                 if (relation.value.bar != parent.meta.id) continue
-                injection.storages.require<Bar2Baz>().delete(relation.meta.id)
-                injection.storages.require<Baz>().delete(relation.value.baz)
+                logger.debug("delete relation with ${relation.value.baz}")
+                ids.getOrPut(b2bs.id, ::mutableSetOf).add(relation.meta.id)
+                ids.getOrPut(bazs.id, ::mutableSetOf).add(relation.value.baz)
             }
-            injection.storages.require<Bar>().delete(id = id)
+            injection.storages.delete(ids = ids)
         }
         val list = withContext(injection.contexts.default) {
             getItems()
