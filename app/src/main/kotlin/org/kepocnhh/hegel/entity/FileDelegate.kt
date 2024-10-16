@@ -5,8 +5,12 @@ import java.util.Objects
 
 internal class FileDelegate(
     val hash: ByteArray,
-    val size: Int,
+    val size: Long,
 ) {
+    fun name(): String {
+        return hash.copyOf(16).toHEX()
+    }
+
     override fun equals(other: Any?): Boolean {
         return when (other) {
             is FileDelegate -> hash.contentEquals(other.hash) && size == other.size

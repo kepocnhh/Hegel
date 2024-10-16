@@ -7,6 +7,7 @@ import androidx.compose.runtime.remember
 import kotlinx.coroutines.Dispatchers
 import org.kepocnhh.hegel.module.app.Injection
 import org.kepocnhh.hegel.provider.Contexts
+import org.kepocnhh.hegel.provider.Dirs
 import org.kepocnhh.hegel.provider.FinalAssets
 import org.kepocnhh.hegel.provider.FinalLocals
 import org.kepocnhh.hegel.provider.FinalLoggers
@@ -73,7 +74,10 @@ internal class App : Application() {
             assets = FinalAssets(context = this),
             secrets = secrets,
             tls = tls,
-            filesDir = filesDir,
+            dirs = Dirs(
+                files = filesDir,
+                cache = cacheDir,
+            ),
         )
     }
 

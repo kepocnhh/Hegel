@@ -1,7 +1,7 @@
 package org.kepocnhh.hegel.provider
 
-import java.util.UUID
+import org.kepocnhh.hegel.entity.FileRequest
 
 internal interface FilesRemotes {
-    fun getFile(id: UUID): ByteArray
+    fun getBytes(request: FileRequest): ByteArray
 }

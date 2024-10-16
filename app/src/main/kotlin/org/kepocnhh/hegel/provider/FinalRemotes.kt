@@ -40,6 +40,7 @@ internal class FinalRemotes(
                 tls = tls,
             ),
             loggers = loggers,
+            serializer = serializer,
         )
     }
 }

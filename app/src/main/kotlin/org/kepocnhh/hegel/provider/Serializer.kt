@@ -3,6 +3,7 @@ package org.kepocnhh.hegel.provider
 import org.kepocnhh.hegel.entity.Bar
 import org.kepocnhh.hegel.entity.Bar2Baz
 import org.kepocnhh.hegel.entity.Baz
+import org.kepocnhh.hegel.entity.FileRequest
 import org.kepocnhh.hegel.entity.Foo
 import org.kepocnhh.hegel.entity.ItemsMergeRequest
 import org.kepocnhh.hegel.entity.ItemsMergeResponse
@@ -17,6 +18,7 @@ internal interface Serializer {
         val syncResponse: Transformer<ItemsSyncResponse>
         val mergeRequest: Transformer<ItemsMergeRequest>
         val mergeResponse: Transformer<ItemsMergeResponse>
+        val fileRequest: Transformer<FileRequest>
     }
 
     val foo: Transformer<Foo>

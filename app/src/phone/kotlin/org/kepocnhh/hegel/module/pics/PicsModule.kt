@@ -35,7 +35,6 @@ import androidx.compose.ui.window.Dialog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.kepocnhh.hegel.App
-import org.kepocnhh.hegel.util.toHEX
 import java.io.File
 import java.util.UUID
 
@@ -47,7 +46,7 @@ internal fun PicsScreen(
     onDelete: (UUID) -> Unit,
     onAdd: () -> Unit,
     onSetFile: (UUID, ByteArray) -> Unit,
-    onAttachFile: (UUID) -> Unit,
+    onDetachFile: (UUID) -> Unit,
     onDeleteFile: (UUID) -> Unit,
     onDownloadFile: (UUID) -> Unit,
 ) {
@@ -134,17 +133,16 @@ internal fun PicsScreen(
                                 style = TextStyle(color = Color.White),
                             )
                         } else {
-                            val name = "${payload.meta.id}-${fd.hash.copyOf(16).toHEX()}"
-                            val file = context.filesDir.resolve(name)
+                            val file = context.filesDir.resolve(fd.name())
                             BasicText(
                                 modifier = Modifier
                                     .padding(2.dp)
                                     .background(Color.Black)
                                     .padding(8.dp)
                                     .clickable(enabled = !state.loading) {
-                                        onAttachFile(payload.meta.id)
+                                        onDetachFile(payload.meta.id)
                                     },
-                                text = "attach",
+                                text = "detach",
                                 style = TextStyle(color = Color.White),
                             )
                             if (file.exists()) {

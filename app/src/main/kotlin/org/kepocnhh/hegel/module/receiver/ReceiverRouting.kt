@@ -15,6 +15,7 @@ import sp.kx.http.TLSResponse
 import sp.kx.http.TLSRouting
 import sp.kx.storages.require
 import java.io.File
+import java.nio.ByteBuffer
 import java.util.UUID
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -31,8 +32,8 @@ internal class ReceiverRouting(
         "/v1/items/merge" to mapOf(
             "POST" to ::onPostItemsMerge,
         ),
-        "/v1/files" to mapOf(
-            "POST" to ::onPostFiles,
+        "/v1/bytes" to mapOf(
+            "POST" to ::onPostBytes,
         ),
     )
 
@@ -44,18 +45,28 @@ internal class ReceiverRouting(
             injection.locals.requested = value
         }
 
-    private fun onPostFiles(request: HttpRequest): HttpResponse {
-        logger.debug("on post files...")
+    private fun onPostBytes(request: HttpRequest): HttpResponse {
+        logger.debug("on post bytes...")
         return map(request) { decrypted ->
-            val id = decrypted.readUUID()
-            logger.debug("get file by id: $id")
-            val pics = injection.storages.require<Pic>()
-            val payload = pics.items.firstOrNull { it.meta.id == id } ?: TODO("No pic by id: $id")
-            val fd = payload.value.fd ?: TODO("No fd by id: $id")
-            val name = "${payload.meta.id}-${fd.hash.copyOf(16).toHEX()}"
-            val file = File(injection.filesDir, name)
-            if (!file.exists()) TODO("File $file does not exist!")
-            TLSResponse.OK(encoded = file.readBytes())
+            val req = injection.serializer.remote.fileRequest.decode(decrypted)
+            val index = req.index
+            val count = req.count
+            val fd = req.fd
+            logger.debug("get bytes($index/$count) by: $fd")
+            val file = injection.dirs.files.resolve(fd.name())
+            if (!file.exists()) {
+                TLSResponse.NotFound()
+            } else {
+                val size = file.length()
+                if (fd.size != size) TODO("Size: $size, but fd:size: ${fd.size}!")
+                val bytes = ByteArray(kotlin.math.min(count, (size - index).toInt()))
+                logger.debug("try read ${bytes.size} bytes")
+                file.inputStream().use {
+                    it.skip(index)
+                    it.read(bytes)
+                }
+                TLSResponse.OK(encoded = bytes)
+            }
         }
     }
 

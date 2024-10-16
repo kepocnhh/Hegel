@@ -2,6 +2,7 @@ package org.kepocnhh.hegel.module.app
 
 import org.kepocnhh.hegel.provider.Assets
 import org.kepocnhh.hegel.provider.Contexts
+import org.kepocnhh.hegel.provider.Dirs
 import org.kepocnhh.hegel.provider.Locals
 import org.kepocnhh.hegel.provider.Loggers
 import org.kepocnhh.hegel.provider.Remotes
@@ -23,5 +24,5 @@ internal data class Injection(
     val assets: Assets,
     val secrets: Secrets,
     val tls: TLSEnvironment,
-    val filesDir: File,
+    val dirs: Dirs,
 )

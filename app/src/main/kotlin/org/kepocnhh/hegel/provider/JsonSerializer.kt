@@ -6,12 +6,14 @@ import org.kepocnhh.hegel.entity.Bar
 import org.kepocnhh.hegel.entity.Bar2Baz
 import org.kepocnhh.hegel.entity.Baz
 import org.kepocnhh.hegel.entity.FileDelegate
+import org.kepocnhh.hegel.entity.FileRequest
 import org.kepocnhh.hegel.entity.Foo
 import org.kepocnhh.hegel.entity.ItemsMergeRequest
 import org.kepocnhh.hegel.entity.ItemsMergeResponse
 import org.kepocnhh.hegel.entity.ItemsSyncRequest
 import org.kepocnhh.hegel.entity.ItemsSyncResponse
 import org.kepocnhh.hegel.entity.Pic
+import org.kepocnhh.hegel.util.toHEX
 import sp.kx.storages.CommitInfo
 import sp.kx.storages.HashFunction
 import sp.kx.storages.HashesTransformer
@@ -384,6 +386,26 @@ internal class JsonSerializer(
                 )
             }
         }
+
+        override val fileRequest = object : Transformer<FileRequest> {
+            override fun decode(encoded: ByteArray): FileRequest {
+                val obj = JSONObject(String(encoded))
+                return FileRequest(
+                    fd = obj.getJSONObject("fd").toFileDelegate(),
+                    index = obj.getLong("index"),
+                    count = obj.getInt("count"),
+                )
+            }
+
+            override fun encode(decoded: FileRequest): ByteArray {
+                return JSONObject()
+                    .put("index", decoded.index)
+                    .put("count", decoded.count)
+                    .put("fd", decoded.fd.toJSONObject())
+                    .toString()
+                    .toByteArray()
+            }
+        }
     }
 
     override val foo = object : Transformer<Foo> {
@@ -449,7 +471,7 @@ internal class JsonSerializer(
     private fun JSONObject.toFileDelegate(): FileDelegate {
         return FileDelegate(
             hash = getString("hash").base64(),
-            size = getInt("size"),
+            size = getLong("size"),
         )
     }
 
