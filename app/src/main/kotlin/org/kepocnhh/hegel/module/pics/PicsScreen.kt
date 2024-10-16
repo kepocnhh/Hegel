@@ -12,9 +12,7 @@ internal fun PicsScreen(onBack: () -> Unit) {
     val state = logics.state.collectAsState().value
     val items = logics.items.collectAsState().value
     LaunchedEffect(Unit) {
-        if (items == null) {
-            logics.requestItems()
-        }
+        if (items == null) logics.requestItems()
     }
     if (items == null) return
     PicsScreen(
@@ -28,6 +26,9 @@ internal fun PicsScreen(onBack: () -> Unit) {
         },
         onSetFile = { id, bytes ->
             logics.setFile(id = id, bytes = bytes)
+        },
+        onAttachFile = { id ->
+            logics.attachFile(id = id)
         },
         onDeleteFile = { id ->
             logics.deleteFile(id = id)

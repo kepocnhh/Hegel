@@ -82,19 +82,35 @@ internal class PicsLogics(
         _state.value = State(loading = false)
     }
 
-    private fun deleteFile(pics: MutableStorage<Pic>, payload: Payload<Pic>) {
+    private fun attachFile(pics: MutableStorage<Pic>, payload: Payload<Pic>) {
         val fd = payload.value.fd ?: return
         pics.update(id = payload.meta.id, value = payload.value.copy(fd = null))
         val name = "${payload.meta.id}-${fd.hash.copyOf(16).toHEX()}"
         injection.filesDir.resolve(name).delete()
     }
 
-    fun deleteFile(id: UUID) = launch {
+    private fun deleteFile(payload: Payload<Pic>) {
+        val fd = payload.value.fd ?: return
+        val name = "${payload.meta.id}-${fd.hash.copyOf(16).toHEX()}"
+        injection.filesDir.resolve(name).delete()
+    }
+
+    fun attachFile(id: UUID) = launch {
         _state.value = State(loading = true)
         _items.value = withContext(injection.contexts.default) {
             val pics = injection.storages.require<Pic>()
             val payload = pics.require(id = id)
-            deleteFile(pics = pics, payload = payload)
+            attachFile(pics = pics, payload = payload)
+            Items(list = pics.items)
+        }
+        _state.value = State(loading = false)
+    }
+
+    fun deleteFile(id: UUID) = launch {
+        _state.value = State(loading = true)
+        _items.value = withContext(injection.contexts.default) {
+            val pics = injection.storages.require<Pic>()
+            deleteFile(payload = pics.require(id = id))
             Items(list = pics.items)
         }
         _state.value = State(loading = false)

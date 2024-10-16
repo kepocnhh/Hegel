@@ -47,6 +47,7 @@ internal fun PicsScreen(
     onDelete: (UUID) -> Unit,
     onAdd: () -> Unit,
     onSetFile: (UUID, ByteArray) -> Unit,
+    onAttachFile: (UUID) -> Unit,
     onDeleteFile: (UUID) -> Unit,
     onDownloadFile: (UUID) -> Unit,
 ) {
@@ -141,12 +142,23 @@ internal fun PicsScreen(
                                     .background(Color.Black)
                                     .padding(8.dp)
                                     .clickable(enabled = !state.loading) {
-                                        onDeleteFile(payload.meta.id)
+                                        onAttachFile(payload.meta.id)
                                     },
-                                text = "-f",
+                                text = "attach",
                                 style = TextStyle(color = Color.White),
                             )
                             if (file.exists()) {
+                                BasicText(
+                                    modifier = Modifier
+                                        .padding(2.dp)
+                                        .background(Color.Black)
+                                        .padding(8.dp)
+                                        .clickable(enabled = !state.loading) {
+                                            onDeleteFile(payload.meta.id)
+                                        },
+                                    text = "-f",
+                                    style = TextStyle(color = Color.White),
+                                )
                                 BasicText(
                                     modifier = Modifier
                                         .padding(2.dp)
