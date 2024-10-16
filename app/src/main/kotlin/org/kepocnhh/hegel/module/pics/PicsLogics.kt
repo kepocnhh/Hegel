@@ -37,80 +37,66 @@ internal class PicsLogics(
     fun requestItems() = launch {
         logger.debug("request items...")
         _state.value = State(loading = true)
-        val list = withContext(injection.contexts.default) {
-            getStorage().items.sortedBy { it.meta.created }
+        _items.value = withContext(injection.contexts.default) {
+            val pics = injection.storages.require<Pic>()
+            Items(list = pics.items)
         }
-        _items.value = Items(list = list)
         _state.value = State(loading = false)
     }
 
     fun addItem(title: String) = launch {
         _state.value = State(loading = true)
-        withContext(injection.contexts.default) {
-            getStorage().add(
-                Pic(
-                    title = title,
-                    fd = null,
-                ),
-            )
+        _items.value = withContext(injection.contexts.default) {
+            val pics = injection.storages.require<Pic>()
+            pics.add(Pic(title = title, fd = null))
+            Items(list = pics.items)
         }
-        val list = withContext(injection.contexts.default) {
-            getStorage().items.sortedBy { it.meta.created }
-        }
-        _items.value = Items(list = list)
         _state.value = State(loading = false)
     }
 
     fun deleteItem(id: UUID) = launch {
         _state.value = State(loading = true)
-        withContext(injection.contexts.default) {
-            getStorage().delete(id = id)
+        _items.value = withContext(injection.contexts.default) {
+            val pics = injection.storages.require<Pic>()
+            pics.delete(id = id)
+            Items(list = pics.items)
         }
-        val list = withContext(injection.contexts.default) {
-            getStorage().items.sortedBy { it.meta.created }
-        }
-        _items.value = Items(list = list)
         _state.value = State(loading = false)
     }
 
     fun setFile(id: UUID, bytes: ByteArray) = launch {
         logger.debug("set file: $id")
         _state.value = State(loading = true)
-        withContext(injection.contexts.default) {
+        _items.value = withContext(injection.contexts.default) {
             val fd = FileDelegate(
                 hash = injection.secrets.hash(bytes),
                 size = bytes.size,
             )
-//            val payload = injection.storages.require<FileDelegate>().add(value = fileDelegate)
-            val payload = getStorage().items.firstOrNull { it.meta.id == id } ?: TODO()
+            val pics = injection.storages.require<Pic>()
+            val payload = pics.require(id = id)
             val name = "${payload.meta.id}-${fd.hash.copyOf(16).toHEX()}"
             injection.filesDir.resolve(name).writeBytes(bytes)
-            getStorage().update(id = id, value = payload.value.copy(fd = fd))
+            pics.update(id = id, value = payload.value.copy(fd = fd))
+            Items(list = pics.items)
         }
-        val list = withContext(injection.contexts.default) {
-            getStorage().items.sortedBy { it.meta.created }
-        }
-        _items.value = Items(list = list)
         _state.value = State(loading = false)
     }
 
-    private fun deleteFile(payload: Payload<Pic>) {
+    private fun deleteFile(pics: MutableStorage<Pic>, payload: Payload<Pic>) {
         val fd = payload.value.fd ?: return
-        getStorage().update(id = payload.meta.id, value = payload.value.copy(fd = null))
+        pics.update(id = payload.meta.id, value = payload.value.copy(fd = null))
         val name = "${payload.meta.id}-${fd.hash.copyOf(16).toHEX()}"
         injection.filesDir.resolve(name).delete()
     }
 
     fun deleteFile(id: UUID) = launch {
         _state.value = State(loading = true)
-        withContext(injection.contexts.default) {
-            val payload = getStorage().items.firstOrNull { it.meta.id == id } ?: TODO()
-            deleteFile(payload = payload)
+        _items.value = withContext(injection.contexts.default) {
+            val pics = injection.storages.require<Pic>()
+            val payload = pics.require(id = id)
+            deleteFile(pics = pics, payload = payload)
+            Items(list = pics.items)
         }
-        val list = withContext(injection.contexts.default) {
-            getStorage().items.sortedBy { it.meta.created }
-        }
-        _items.value = Items(list = list)
         _state.value = State(loading = false)
     }
 
@@ -125,15 +111,12 @@ internal class PicsLogics(
                     hash = injection.secrets.hash(bytes),
                     size = bytes.size,
                 )
-                val payload = getStorage().items.firstOrNull { it.meta.id == id } ?: TODO("No pic by id: $id")
+                val pics = injection.storages.require<Pic>()
+                val payload = pics.require(id = id)
                 if (fd != payload.value.fd) TODO("e: $fd, a: ${payload.value.fd}")
                 val name = "${payload.meta.id}-${fd.hash.copyOf(16).toHEX()}"
                 injection.filesDir.resolve(name).writeBytes(bytes)
-            }.mapCatching {
-                val list = withContext(injection.contexts.default) {
-                    getStorage().items.sortedBy { it.meta.created }
-                }
-                Items(list = list)
+                Items(list = pics.items)
             }
         }.fold(
             onSuccess = {
