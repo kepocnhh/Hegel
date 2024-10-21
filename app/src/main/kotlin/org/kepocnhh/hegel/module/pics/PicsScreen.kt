@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import org.kepocnhh.hegel.App
+import org.kepocnhh.hegel.module.files.FilesService
 import kotlin.math.absoluteValue
 
 @Composable
@@ -15,6 +16,15 @@ internal fun PicsScreen(onBack: () -> Unit) {
         if (items == null) logics.requestItems()
     }
     if (items == null) return
+    LaunchedEffect(Unit) {
+        FilesService.events.collect { event ->
+            when (event) {
+                is FilesService.Event.OnDownload -> {
+                    logics.requestItems()
+                }
+            }
+        }
+    }
     PicsScreen(
         onBack = onBack,
         state = state,

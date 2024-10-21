@@ -22,6 +22,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -35,6 +36,7 @@ import androidx.compose.ui.window.Dialog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.kepocnhh.hegel.App
+import org.kepocnhh.hegel.module.files.FilesService
 import java.io.File
 import java.util.UUID
 
@@ -169,15 +171,17 @@ internal fun PicsScreen(
                                     style = TextStyle(color = Color.White),
                                 )
                             } else {
+                                val downloading = FilesService.states.collectAsState().value as? FilesService.State.Downloading
+                                val queue = FilesService.queue.collectAsState().value
                                 BasicText(
                                     modifier = Modifier
                                         .padding(2.dp)
                                         .background(Color.Black)
                                         .padding(8.dp)
-                                        .clickable(enabled = !state.loading) {
-                                            onDownloadFile(payload.meta.id)
+                                        .clickable(enabled = !state.loading && downloading?.fd != fd) {
+                                            FilesService.download(context = context, fd = fd)
                                         },
-                                    text = "download",
+                                    text = if (downloading?.fd == fd) "..." else if (queue.contains(fd)) "downloading" else "download",
                                     style = TextStyle(color = Color.White),
                                 )
                             }
