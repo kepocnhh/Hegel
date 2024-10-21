@@ -125,6 +125,7 @@ androidComponents.onVariants { variant ->
 }
 
 dependencies {
+    implementation("androidx.lifecycle:lifecycle-service:2.8.6")
     debugImplementation("androidx.compose.ui:ui-tooling:${Version.compose}")
     debugImplementation("androidx.compose.ui:ui-tooling-preview:${Version.compose}")
     debugImplementation("androidx.wear:wear-tooling-preview:1.0.0")

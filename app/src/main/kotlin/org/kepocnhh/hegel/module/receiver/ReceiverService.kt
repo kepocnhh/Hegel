@@ -106,7 +106,7 @@ internal class ReceiverService : Service() {
             .build()
     }
 
-    private val N_ID: Int = System.currentTimeMillis().toInt().absoluteValue
+    private val N_ID: Int = System.currentTimeMillis().plus(hashCode()).toInt().absoluteValue
 
     private suspend fun onState(state: HttpReceiver.State) = withContext(Dispatchers.Main) {
         logger.debug("on state: $state")

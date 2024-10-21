@@ -20,5 +20,8 @@
         <service android:name=".module.receiver.ReceiverService"
             android:exported="false"
             android:foregroundServiceType="dataSync"/>
+        <service android:name=".module.files.FilesService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync"/>
     </application>
 </manifest>
