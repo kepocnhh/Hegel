@@ -25,7 +25,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import org.kepocnhh.hegel.App
 import org.kepocnhh.hegel.util.compose.Button
-import org.kepocnhh.hegel.util.toHEX
+import sp.kx.bytes.toHEX
 
 @Composable
 internal fun MainScreen(

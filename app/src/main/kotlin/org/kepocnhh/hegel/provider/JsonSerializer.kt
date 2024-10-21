@@ -13,7 +13,6 @@ import org.kepocnhh.hegel.entity.ItemsMergeResponse
 import org.kepocnhh.hegel.entity.ItemsSyncRequest
 import org.kepocnhh.hegel.entity.ItemsSyncResponse
 import org.kepocnhh.hegel.entity.Pic
-import org.kepocnhh.hegel.util.toHEX
 import sp.kx.storages.CommitInfo
 import sp.kx.storages.HashFunction
 import sp.kx.storages.HashesTransformer

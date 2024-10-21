@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import org.kepocnhh.hegel.module.app.Injection
-import org.kepocnhh.hegel.util.toHEX
+import sp.kx.bytes.toHEX
 import sp.kx.logics.Logics
 import java.security.PrivateKey
 

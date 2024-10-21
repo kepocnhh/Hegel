@@ -7,7 +7,6 @@ import org.kepocnhh.hegel.entity.FileDelegate
 import org.kepocnhh.hegel.entity.FileRequest
 import org.kepocnhh.hegel.entity.Pic
 import org.kepocnhh.hegel.module.app.Injection
-import org.kepocnhh.hegel.util.toHEX
 import sp.kx.logics.Logics
 import sp.kx.storages.MutableStorage
 import sp.kx.storages.Payload

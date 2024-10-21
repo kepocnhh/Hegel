@@ -7,7 +7,7 @@ import org.kepocnhh.hegel.entity.ItemsSyncResponse
 import org.kepocnhh.hegel.provider.ItemsRemotes
 import org.kepocnhh.hegel.provider.Loggers
 import org.kepocnhh.hegel.provider.Serializer
-import org.kepocnhh.hegel.util.toHEX
+import sp.kx.bytes.toHEX
 
 internal class OkHttpItemsRemotes(
     private val tlsTransmitter: OkHttpTLSTransmitter,

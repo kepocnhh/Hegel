@@ -11,9 +11,8 @@ import org.kepocnhh.hegel.entity.ItemsSyncRequest
 import org.kepocnhh.hegel.entity.ItemsSyncResponse
 import org.kepocnhh.hegel.entity.NotModifiedException
 import org.kepocnhh.hegel.module.app.Injection
-import org.kepocnhh.hegel.util.toHEX
+import sp.kx.bytes.toHEX
 import sp.kx.logics.Logics
-import sp.kx.storages.SyncResponse
 import sp.kx.storages.SyncSession
 import java.net.URL
 

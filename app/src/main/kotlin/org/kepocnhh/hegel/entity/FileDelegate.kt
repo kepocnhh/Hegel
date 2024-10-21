@@ -1,6 +1,6 @@
 package org.kepocnhh.hegel.entity
 
-import org.kepocnhh.hegel.util.toHEX
+import sp.kx.bytes.toHEX
 import java.util.Objects
 
 internal class FileDelegate(
