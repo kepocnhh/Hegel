@@ -137,6 +137,7 @@ internal class PicsLogics(
         tmp.renameTo(injection.dirs.files.resolve(name))
     }
 
+    @Deprecated(message = "org.kepocnhh.hegel.module.files.FilesService")
     fun downloadFile(id: UUID) = launch {
         _state.value = State(loading = true)
         withContext(injection.contexts.default) {

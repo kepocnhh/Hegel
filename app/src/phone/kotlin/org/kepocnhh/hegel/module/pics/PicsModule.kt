@@ -171,17 +171,25 @@ internal fun PicsScreen(
                                     style = TextStyle(color = Color.White),
                                 )
                             } else {
-                                val downloading = FilesService.states.collectAsState().value as? FilesService.State.Downloading
-                                val queue = FilesService.queue.collectAsState().value
+                                val downloading = FilesService.states.collectAsState().value
+                                val current = downloading.current
+                                val text = if (current != null && current.fd == fd) {
+                                    val progress = (current.downloaded.toDouble() / current.fd.size * 100).toInt()
+                                    "downloading: $progress%"
+                                } else if (downloading.queue.contains(fd)) {
+                                    "downloading"
+                                } else {
+                                    "download"
+                                }
                                 BasicText(
                                     modifier = Modifier
                                         .padding(2.dp)
                                         .background(Color.Black)
                                         .padding(8.dp)
-                                        .clickable(enabled = !state.loading && downloading?.fd != fd) {
+                                        .clickable(enabled = !state.loading && downloading.current?.fd != fd && !downloading.queue.contains(fd)) {
                                             FilesService.download(context = context, fd = fd)
                                         },
-                                    text = if (downloading?.fd == fd) "..." else if (queue.contains(fd)) "downloading" else "download",
+                                    text = text,
                                     style = TextStyle(color = Color.White),
                                 )
                             }
