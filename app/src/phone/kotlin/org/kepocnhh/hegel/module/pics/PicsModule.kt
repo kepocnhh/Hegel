@@ -173,8 +173,9 @@ internal fun PicsScreen(
                             } else {
                                 val downloading = FilesService.states.collectAsState().value
                                 val current = downloading.current
-                                val text = if (current != null && current.fd == fd) {
-                                    val progress = (current.downloaded.toDouble() / current.fd.size * 100).toInt()
+                                val text = if (current != null && current == fd) {
+                                    val downloaded = downloading.queue[fd] ?: TODO("No fd: $fd")
+                                    val progress = (downloaded.toDouble() / current.size * 100).toInt()
                                     "downloaded: $progress%"
                                 } else if (downloading.queue.contains(fd)) {
                                     "downloading"
@@ -186,7 +187,7 @@ internal fun PicsScreen(
                                         .padding(2.dp)
                                         .background(Color.Black)
                                         .padding(8.dp)
-                                        .clickable(enabled = !state.loading && downloading.current?.fd != fd && !downloading.queue.contains(fd)) {
+                                        .clickable(enabled = !state.loading && downloading.current != fd && !downloading.queue.containsKey(fd)) {
                                             FilesService.download(context = context, fd = fd)
                                         },
                                     text = text,

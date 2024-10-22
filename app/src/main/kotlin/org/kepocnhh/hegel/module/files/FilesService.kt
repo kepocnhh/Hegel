@@ -22,6 +22,7 @@ import org.kepocnhh.hegel.BuildConfig
 import org.kepocnhh.hegel.entity.FileDelegate
 import org.kepocnhh.hegel.entity.FileDelegateParcelable
 import org.kepocnhh.hegel.entity.FileRequest
+import java.io.File
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.absoluteValue
@@ -33,9 +34,8 @@ internal class FilesService : LifecycleService() {
 
     private val logger = App.injection.loggers.create("[Files|Service]")
     private val N_ID: Int = System.currentTimeMillis().plus(hashCode()).toInt().absoluteValue
-    private val stopped = AtomicBoolean(true)
 
-    data class State(
+    data class StateOld(
         val queue: Collection<FileDelegate>,
         val current: Current?
     ) {
@@ -45,20 +45,26 @@ internal class FilesService : LifecycleService() {
         )
     }
 
+    data class State(
+        val queue: Map<FileDelegate, Long>,
+        val current: FileDelegate?,
+    )
+
     private fun onState(state: State) {
         logger.debug("state: $state")
-        val current = state.current
+        val fd = state.current
         val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        if (current == null) {
+        if (fd == null) {
             if (state.queue.isEmpty()) {
                 stopForeground(STOP_FOREGROUND_REMOVE)
             }
             nm.cancel(N_ID)
         } else {
-            val progress = (current.downloaded.toDouble() / current.fd.size * 100).toInt()
+            val downloaded = state.queue[fd] ?: TODO("No fd: $fd")
+            val progress = (downloaded.toDouble() / fd.size * 100).toInt()
             nm.startForeground(
                 context = this,
-                text = "${current.fd.name()}\n${current.downloaded}/${current.fd.size}",
+                text = "${fd.name()}\n$downloaded/${fd.size}",
                 progress = progress,
             )
         }
@@ -112,7 +118,53 @@ internal class FilesService : LifecycleService() {
 
     private class StopException : Exception()
 
-    private suspend fun download(fd: FileDelegate) {
+    private suspend fun postDownload(fd: FileDelegate, tmp: File) {
+        val queue = HashMap(states.value.queue)
+        val name = fd.name()
+        val downloaded = tmp.length()
+        if (downloaded > fd.size) TODO("Readed $downloaded, but fd:size: ${fd.size}!")
+        if (downloaded == fd.size) {
+            val hash = App.injection.secrets.hash(tmp.readBytes())
+            if (!fd.hash.contentEquals(hash)) TODO("Hashes error!")
+            if (App.injection.dirs.files.resolve(name).exists()) TODO("file: $name exists!")
+            tmp.renameTo(App.injection.dirs.files.resolve(name))
+            queue.remove(fd)
+            logger.debug("finish download: $name")
+            _events.emit(Event.OnDownload(fd = fd))
+        } else {
+            queue[fd] = downloaded
+        }
+        _states.value = State(queue = queue, current = null)
+    }
+
+    private fun download(fd: FileDelegate, downloaded: Long): File {
+        logger.debug("start download: ${fd.name()}")
+        val address = App.injection.locals.address ?: error("No address!")
+        val name = fd.name()
+        val tmp = App.injection.dirs.cache.resolve(name)
+        val index: Long
+        if (downloaded == 0L) {
+            tmp.delete()
+            index = 0
+        } else {
+            if (tmp.length() != downloaded) TODO("Length: ${tmp.length()}, but downloaded: $downloaded!")
+            index = downloaded
+        }
+        val count = 2 shl 10
+//        val count = 2 shl 16
+        val request = FileRequest(
+            fd = fd,
+            index = index,
+            count = kotlin.math.min(count, (fd.size - index).toInt()),
+        )
+        val bytes = App.injection.remotes.files(address).getBytes(request = request)
+        tmp.appendBytes(bytes)
+        logger.debug("${request.index}] readed $name ${bytes.size}/${fd.size}")
+        return tmp
+    }
+
+/*
+    private fun downloadMock(fd: FileDelegate) {
         logger.debug("mock:start:download: ${fd.name()}")
         val name = fd.name()
         var index: Long = 0
@@ -128,8 +180,7 @@ internal class FilesService : LifecycleService() {
                 index = index,
                 count = kotlin.math.min(count, (fd.size - index).toInt()),
             )
-            delay(100)
-//            delay(250)
+            Thread.sleep(100)
             index += request.count
             logger.debug("${request.index}] readed $name ${request.count}/${fd.size}")
             if (index > fd.size) TODO("Readed $index, but fd:size: ${fd.size}!")
@@ -137,7 +188,9 @@ internal class FilesService : LifecycleService() {
             _states.value = states.value.copy(current = State.Current(fd = fd, downloaded = index))
         }
     }
+*/
 
+/*
     private suspend fun downloadOld(fd: FileDelegate) {
         logger.debug("start download: ${fd.name()}")
         val address = App.injection.locals.address ?: error("No address!")
@@ -169,10 +222,37 @@ internal class FilesService : LifecycleService() {
             }
             _states.value = states.value.copy(current = State.Current(fd = fd, downloaded = index))
         }
+        if (App.injection.dirs.files.resolve(name).exists()) TODO("file: $name exists!")
         tmp.renameTo(App.injection.dirs.files.resolve(name))
     }
+*/
 
     private fun perform() {
+        val state = states.value
+        if (state.current != null) return
+        val (fd, downloaded) = state.queue.entries.firstOrNull() ?: return
+        _states.value = state.copy(current = fd)
+        logger.debug("perform:download: $fd")
+        lifecycleScope.launch {
+            withContext(App.injection.contexts.default) {
+                runCatching {
+                    val tmp = download(fd = fd, downloaded = downloaded)
+                    if (states.value.queue.containsKey(fd)) postDownload(fd = fd, tmp = tmp)
+                }
+            }.fold(
+                onSuccess = {
+                    perform()
+                },
+                onFailure = { error: Throwable ->
+                    logger.warning("download ${fd.name()} error: $error")
+                    _states.value = State(queue = emptyMap(), current = null)
+                },
+            )
+        }
+    }
+
+/*
+    private fun performOld() {
         val state = states.value
         if (state.current != null) return
         val fds = ConcurrentLinkedQueue(state.queue)
@@ -196,12 +276,13 @@ internal class FilesService : LifecycleService() {
                     },
                     onFailure = { error: Throwable ->
                         logger.warning("download ${fd.name()} error: $error")
-                        _states.value = State(queue = emptyList(), current = null)
+                        _states.value = State(queue = emptyMap(), current = null)
                     },
                 )
             }
         }
     }
+*/
 
     private fun onStartCommand(intent: Intent) {
         logger.debug("command:${intent.action}")
@@ -211,14 +292,19 @@ internal class FilesService : LifecycleService() {
                     ?.delegate
                     ?: error("No file delegate!")
                 val state = states.value
-                if (state.queue.contains(fd) || state.current?.equals(fd) == true) return // todo
+                if (state.queue.containsKey(fd) || state.current?.equals(fd) == true) return // todo
+                if (App.injection.dirs.files.resolve(fd.name()).exists()) {
+                    logger.debug("file: ${fd.name()} exists")
+                    return
+                }
                 logger.debug("download: $fd")
-                _states.value = state.copy(queue = state.queue + fd)
-                stopped.set(false)
+                val queue = HashMap(state.queue)
+                queue[fd] = 0
+                _states.value = state.copy(queue = queue)
                 perform()
             }
             "stop" -> {
-                stopped.set(true)
+                _states.value = State(queue = emptyMap(), current = null)
             }
         }
     }
@@ -232,7 +318,7 @@ internal class FilesService : LifecycleService() {
     companion object {
         private val NC_ID = "f6d353de-3d4d-4abf-8f6b-053c5ccdec09"
 
-        private val _states = MutableStateFlow(State(queue = emptyList(), current = null))
+        private val _states = MutableStateFlow(State(queue = emptyMap(), current = null))
         val states = _states.asStateFlow()
         private val _events = MutableSharedFlow<Event>()
         val events = _events.asSharedFlow()
