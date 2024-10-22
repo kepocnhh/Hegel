@@ -114,7 +114,7 @@ internal class FilesService : LifecycleService() {
 
     private suspend fun download(fd: FileDelegate) {
         logger.debug("mock:start:download: ${fd.name()}")
-        _states.value = states.value.copy(current = State.Current(fd = fd, downloaded = 0))
+        val name = fd.name()
         var index: Long = 0
         val count = 2 shl 10
 //        val count = 2 shl 16
@@ -123,22 +123,23 @@ internal class FilesService : LifecycleService() {
                 logger.debug("mock:stop:externally: ${fd.name()}")
                 throw StopException()
             }
+            val request = FileRequest(
+                fd = fd,
+                index = index,
+                count = kotlin.math.min(count, (fd.size - index).toInt()),
+            )
             delay(100)
 //            delay(250)
-            index = kotlin.math.min(fd.size, index + count)
+            index += request.count
+            logger.debug("${request.index}] readed $name ${request.count}/${fd.size}")
+            if (index > fd.size) TODO("Readed $index, but fd:size: ${fd.size}!")
+            if (index == fd.size) break
             _states.value = states.value.copy(current = State.Current(fd = fd, downloaded = index))
-            if (index == fd.size) {
-                break
-            }
         }
-        _events.emit(Event.OnDownload(fd = fd))
-        logger.debug("mock:finish:download: ${fd.name()}")
-        _states.value = states.value.copy(current = null)
     }
 
     private suspend fun downloadOld(fd: FileDelegate) {
         logger.debug("start download: ${fd.name()}")
-        _states.value = states.value.copy(current = State.Current(fd = fd, downloaded = 0))
         val address = App.injection.locals.address ?: error("No address!")
         val name = fd.name()
         val tmp = App.injection.dirs.cache.resolve(name)
@@ -149,8 +150,7 @@ internal class FilesService : LifecycleService() {
         while (true) {
             if (stopped.get()) {
                 logger.debug("stop externally: ${fd.name()}")
-                _states.value = states.value.copy(queue = emptyList(), current = null)
-                return
+                throw StopException()
             }
             val request = FileRequest(
                 fd = fd,
@@ -162,41 +162,43 @@ internal class FilesService : LifecycleService() {
             index += bytes.size
             logger.debug("${request.index}] readed $name ${bytes.size}/${fd.size}")
             if (index > fd.size) TODO("Readed $index, but fd:size: ${fd.size}!")
-            _states.value = states.value.copy(current = State.Current(fd = fd, downloaded = index))
             if (index == fd.size) {
                 val hash = App.injection.secrets.hash(tmp.readBytes())
                 if (!fd.hash.contentEquals(hash)) TODO("Hashes error!")
                 break
             }
+            _states.value = states.value.copy(current = State.Current(fd = fd, downloaded = index))
         }
         tmp.renameTo(App.injection.dirs.files.resolve(name))
-        _events.emit(Event.OnDownload(fd = fd))
-        logger.debug("finish download: ${fd.name()}")
-        _states.value = states.value.copy(current = null)
     }
 
     private fun perform() {
         val state = states.value
-        val current = state.current
-        if (current != null) return
+        if (state.current != null) return
         val fds = ConcurrentLinkedQueue(state.queue)
         val fd = fds.poll()
         if (fd == null) {
             logger.debug("perform:no file delegate")
         } else {
-            _states.value = state.copy(queue = fds)
+            _states.value = State(queue = fds, current = State.Current(fd = fd, downloaded = 0))
             logger.debug("perform:download: $fd")
             lifecycleScope.launch {
                 withContext(App.injection.contexts.default) {
                     runCatching {
                         download(fd = fd)
                     }
-                }.onFailure { error: Throwable ->
-                    logger.warning("download ${fd.name()} error: $error")
-                    _states.value = State(queue = emptyList(), current = null)
-                }.onSuccess {
-                    perform()
-                }
+                }.fold(
+                    onSuccess = {
+                        logger.debug("finish download: ${fd.name()}")
+                        _events.emit(Event.OnDownload(fd = fd))
+                        _states.value = states.value.copy(current = null)
+                        perform()
+                    },
+                    onFailure = { error: Throwable ->
+                        logger.warning("download ${fd.name()} error: $error")
+                        _states.value = State(queue = emptyList(), current = null)
+                    },
+                )
             }
         }
     }
@@ -209,7 +211,7 @@ internal class FilesService : LifecycleService() {
                     ?.delegate
                     ?: error("No file delegate!")
                 val state = states.value
-                if (state.queue.contains(fd)) return // todo
+                if (state.queue.contains(fd) || state.current?.equals(fd) == true) return // todo
                 logger.debug("download: $fd")
                 _states.value = state.copy(queue = state.queue + fd)
                 stopped.set(false)

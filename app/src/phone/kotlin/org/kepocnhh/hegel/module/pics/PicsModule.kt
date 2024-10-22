@@ -175,7 +175,7 @@ internal fun PicsScreen(
                                 val current = downloading.current
                                 val text = if (current != null && current.fd == fd) {
                                     val progress = (current.downloaded.toDouble() / current.fd.size * 100).toInt()
-                                    "downloading: $progress%"
+                                    "downloaded: $progress%"
                                 } else if (downloading.queue.contains(fd)) {
                                     "downloading"
                                 } else {
