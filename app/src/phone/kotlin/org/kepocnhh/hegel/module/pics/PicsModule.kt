@@ -50,7 +50,6 @@ internal fun PicsScreen(
     onSetFile: (UUID, ByteArray) -> Unit,
     onDetachFile: (UUID) -> Unit,
     onDeleteFile: (UUID) -> Unit,
-    onDownloadFile: (UUID) -> Unit,
 ) {
     val context = LocalContext.current
     val logger = remember { App.injection.loggers.create("[Pics]") }
@@ -135,7 +134,7 @@ internal fun PicsScreen(
                                 style = TextStyle(color = Color.White),
                             )
                         } else {
-                            val file = context.filesDir.resolve(fd.name())
+                            val file = App.injection.dirs.files.resolve(fd.name())
                             BasicText(
                                 modifier = Modifier
                                     .padding(2.dp)
@@ -171,23 +170,17 @@ internal fun PicsScreen(
                                     style = TextStyle(color = Color.White),
                                 )
                             } else {
-                                val downloading = FilesService.states.collectAsState().value
-                                val current = downloading.current
-                                val text = if (current != null && current == fd) {
-                                    val downloaded = downloading.queue[fd] ?: TODO("No fd: $fd")
-                                    val progress = (downloaded.toDouble() / current.size * 100).toInt()
-                                    "downloaded: $progress%"
-                                } else if (downloading.queue.contains(fd)) {
-                                    "downloading"
-                                } else {
-                                    "download"
-                                }
+                                val loading = FilesService.states.collectAsState().value
+                                val text = loading.queue[fd]?.let {
+                                    val progress = (it.toDouble() / fd.size * 100).toInt()
+                                    "loaded: $progress%"
+                                } ?: "download"
                                 BasicText(
                                     modifier = Modifier
                                         .padding(2.dp)
                                         .background(Color.Black)
                                         .padding(8.dp)
-                                        .clickable(enabled = !state.loading && downloading.current != fd && !downloading.queue.containsKey(fd)) {
+                                        .clickable(enabled = !state.loading && !loading.queue.containsKey(fd)) {
                                             FilesService.download(context = context, fd = fd)
                                         },
                                     text = text,

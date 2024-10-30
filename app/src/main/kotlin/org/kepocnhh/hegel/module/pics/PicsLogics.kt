@@ -127,8 +127,8 @@ internal class PicsLogics(
             val bytes = injection.remotes.files(address).getBytes(request = request)
             tmp.appendBytes(bytes)
             index += bytes.size
-            logger.debug("${request.index}] readed $name ${bytes.size}/${fd.size}")
-            if (index > fd.size) TODO("Readed $index, but fd:size: ${fd.size}!")
+            logger.debug("${request.index}] read $name ${bytes.size}/${fd.size}")
+            if (index > fd.size) TODO("Read $index, but fd:size: ${fd.size}!")
             if (index == fd.size) {
                 if (!fd.hash.contentEquals(injection.secrets.hash(tmp.readBytes()))) TODO("Hashes error!")
                 break

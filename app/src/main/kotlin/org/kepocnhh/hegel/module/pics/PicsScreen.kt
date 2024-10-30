@@ -43,8 +43,5 @@ internal fun PicsScreen(onBack: () -> Unit) {
         onDeleteFile = { id ->
             logics.deleteFile(id = id)
         },
-        onDownloadFile = { id ->
-            logics.downloadFile(id = id)
-        },
     )
 }
