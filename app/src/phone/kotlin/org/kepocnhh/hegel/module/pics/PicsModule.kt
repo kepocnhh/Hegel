@@ -170,17 +170,17 @@ internal fun PicsScreen(
                                     style = TextStyle(color = Color.White),
                                 )
                             } else {
-                                val loading = FilesService.states.collectAsState().value
-                                val text = loading.queue[fd]?.let {
-                                    val progress = (it.toDouble() / fd.size * 100).toInt()
-                                    "loaded: $progress%"
+                                val queue = FilesService.states.collectAsState().value
+                                val loading = queue.states[fd.name()]
+                                val text = loading?.let {
+                                    "loaded: ${it.progress()}%"
                                 } ?: "download"
                                 BasicText(
                                     modifier = Modifier
                                         .padding(2.dp)
                                         .background(Color.Black)
                                         .padding(8.dp)
-                                        .clickable(enabled = !state.loading && !loading.queue.containsKey(fd)) {
+                                        .clickable(enabled = !state.loading && loading == null) {
                                             FilesService.download(context = context, fd = fd)
                                         },
                                     text = text,

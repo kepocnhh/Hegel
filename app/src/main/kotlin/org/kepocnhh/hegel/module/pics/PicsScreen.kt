@@ -1,10 +1,14 @@
 package org.kepocnhh.hegel.module.pics
 
+import android.content.Context
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.platform.LocalContext
 import org.kepocnhh.hegel.App
 import org.kepocnhh.hegel.module.files.FilesService
+import org.kepocnhh.hegel.provider.BytesLoader
 import kotlin.math.absoluteValue
 
 @Composable
@@ -19,10 +23,19 @@ internal fun PicsScreen(onBack: () -> Unit) {
     LaunchedEffect(Unit) {
         FilesService.events.collect { event ->
             when (event) {
-                is FilesService.Event.OnDownload -> {
+                is BytesLoader.Event.OnLoad<String> -> {
                     logics.requestItems()
                 }
+                is BytesLoader.Event.OnError -> {
+                    // todo
+                }
             }
+        }
+    }
+    val context: Context = LocalContext.current
+    DisposableEffect(Unit) {
+        onDispose {
+            FilesService.stop(context = context)
         }
     }
     PicsScreen(

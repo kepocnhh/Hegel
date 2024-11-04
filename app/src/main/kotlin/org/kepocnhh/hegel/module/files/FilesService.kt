@@ -21,38 +21,28 @@ import org.kepocnhh.hegel.BuildConfig
 import org.kepocnhh.hegel.entity.FileDelegate
 import org.kepocnhh.hegel.entity.FileDelegateParcelable
 import org.kepocnhh.hegel.entity.FileRequest
+import org.kepocnhh.hegel.provider.BytesLoader
+import org.kepocnhh.hegel.provider.FinalBytesLoader
 import java.io.File
 import kotlin.math.absoluteValue
 
 internal class FilesService : LifecycleService() {
-    internal sealed interface Event {
-        class OnDownload(val fd: FileDelegate) : Event
-    }
-
     private val logger = App.injection.loggers.create("[Files|Service]")
     private val N_ID: Int = System.currentTimeMillis().plus(hashCode()).toInt().absoluteValue
 
-    data class State(
-        val queue: Map<FileDelegate, Long>,
-        val current: FileDelegate?,
-    )
-
-    private fun onState(state: State) {
-        logger.debug("state: $state")
-        val fd = state.current
+    private fun onState(queue: BytesLoader<String>.BytesQueue) {
+        logger.debug("queue: $queue")
         val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        if (fd == null) {
-            if (state.queue.isEmpty()) {
-                stopForeground(STOP_FOREGROUND_REMOVE)
-            }
+        if (queue.states.isEmpty()) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
             nm.cancel(N_ID)
         } else {
-            val loaded = state.queue[fd] ?: TODO("No fd: $fd")
-            val progress = (loaded.toDouble() / fd.size * 100).toInt()
+            val key = queue.current ?: TODO("No current!")
+            val current = queue.states[key] ?: TODO("No state by $key!")
             nm.startForeground(
                 context = this,
-                text = "${fd.name()}\n$loaded/${fd.size}",
-                progress = progress,
+                text = "$key\n${current.loaded}/${current.size}",
+                progress = current.progress(),
             )
         }
     }
@@ -103,6 +93,7 @@ internal class FilesService : LifecycleService() {
         startForeground(N_ID, notification)
     }
 
+/*
     private suspend fun postDownload(fd: FileDelegate, tmp: File) {
         val queue = HashMap(states.value.queue)
         val name = fd.name()
@@ -121,7 +112,9 @@ internal class FilesService : LifecycleService() {
         }
         _states.value = State(queue = queue, current = null)
     }
+*/
 
+/*
     private fun download(fd: FileDelegate, loaded: Long): File {
         logger.debug("start download: ${fd.name()}")
         val address = App.injection.locals.address ?: error("No address!")
@@ -138,7 +131,8 @@ internal class FilesService : LifecycleService() {
         val count = 2 shl 10
 //        val count = 2 shl 16
         val request = FileRequest(
-            fd = fd,
+            name = name,
+            size = fd.size,
             index = index,
             count = kotlin.math.min(count, (fd.size - index).toInt()),
         )
@@ -147,7 +141,9 @@ internal class FilesService : LifecycleService() {
         logger.debug("${request.index}] read $name ${bytes.size}/${fd.size}")
         return tmp
     }
+*/
 
+/*
     private fun perform() {
         val state = states.value
         if (state.current != null) return
@@ -171,6 +167,7 @@ internal class FilesService : LifecycleService() {
             )
         }
     }
+*/
 
     private fun onStartCommand(intent: Intent) {
         logger.debug("command:${intent.action}")
@@ -179,20 +176,14 @@ internal class FilesService : LifecycleService() {
                 val fd = intent.getParcelableExtra<FileDelegateParcelable>("fd")
                     ?.delegate
                     ?: error("No file delegate!")
-                val state = states.value
-                if (state.queue.containsKey(fd) || state.current?.equals(fd) == true) return // todo
-                if (App.injection.dirs.files.resolve(fd.name()).exists()) {
-                    logger.debug("file: ${fd.name()} exists")
-                    return
+                lifecycleScope.launch {
+                    withContext(App.injection.contexts.default) {
+                        loader.load(key = fd.name(), size = fd.size, hash = fd.hash)
+                    }
                 }
-                logger.debug("download: $fd")
-                val queue = HashMap(state.queue)
-                queue[fd] = 0
-                _states.value = state.copy(queue = queue)
-                perform()
             }
             "stop" -> {
-                _states.value = State(queue = emptyMap(), current = null)
+                loader.stop()
             }
         }
     }
@@ -204,17 +195,22 @@ internal class FilesService : LifecycleService() {
     }
 
     companion object {
+        private val loader: BytesLoader<String> = FinalBytesLoader()
         private val NC_ID = "f6d353de-3d4d-4abf-8f6b-053c5ccdec09"
 
-        private val _states = MutableStateFlow(State(queue = emptyMap(), current = null))
-        val states = _states.asStateFlow()
-        private val _events = MutableSharedFlow<Event>()
-        val events = _events.asSharedFlow()
+        val events = loader.events
+        val states = loader.states
 
         fun download(context: Context, fd: FileDelegate) {
             val intent = Intent(context, FilesService::class.java)
             intent.action = "download"
             intent.putExtra("fd", FileDelegateParcelable(fd))
+            context.startService(intent)
+        }
+
+        fun stop(context: Context) {
+            val intent = Intent(context, FilesService::class.java)
+            intent.action = "stop"
             context.startService(intent)
         }
     }

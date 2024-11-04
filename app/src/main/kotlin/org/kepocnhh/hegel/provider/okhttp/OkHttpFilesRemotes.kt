@@ -13,7 +13,7 @@ internal class OkHttpFilesRemotes(
     private val logger = loggers.create("[Files]")
 
     override fun getBytes(request: FileRequest): ByteArray {
-        logger.debug("get bytes by: $request")
+        logger.debug("get bytes by: $request") // todo
         return tlsTransmitter.execute(
             method = "POST",
             query = "/v1/bytes",

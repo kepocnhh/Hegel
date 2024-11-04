@@ -390,9 +390,10 @@ internal class JsonSerializer(
             override fun decode(encoded: ByteArray): FileRequest {
                 val obj = JSONObject(String(encoded))
                 return FileRequest(
-                    fd = obj.getJSONObject("fd").toFileDelegate(),
                     index = obj.getLong("index"),
                     count = obj.getInt("count"),
+                    name = obj.getString("name"),
+                    size = obj.getLong("size"),
                 )
             }
 
@@ -400,7 +401,8 @@ internal class JsonSerializer(
                 return JSONObject()
                     .put("index", decoded.index)
                     .put("count", decoded.count)
-                    .put("fd", decoded.fd.toJSONObject())
+                    .put("name", decoded.name)
+                    .put("size", decoded.size)
                     .toString()
                     .toByteArray()
             }
