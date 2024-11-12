@@ -134,7 +134,7 @@ internal fun PicsScreen(
                                 style = TextStyle(color = Color.White),
                             )
                         } else {
-                            val file = App.injection.dirs.files.resolve(fd.name())
+                            val file = App.injection.dirs.files.resolve(fd.uri.toString())
                             BasicText(
                                 modifier = Modifier
                                     .padding(2.dp)
@@ -170,20 +170,21 @@ internal fun PicsScreen(
                                     style = TextStyle(color = Color.White),
                                 )
                             } else {
-                                val queue = FilesService.states.collectAsState().value
-                                val loading = queue.states[fd.name()]
-                                val text = loading?.let {
-                                    "loaded: ${it.progress()}%"
-                                } ?: "download"
+                                // todo
+//                                val queue = FilesService.states.collectAsState().value
+//                                val loading = queue.states[fd.name()]
+//                                val text = loading?.let {
+//                                    "loaded: ${it.progress()}%"
+//                                } ?: "download"
                                 BasicText(
                                     modifier = Modifier
                                         .padding(2.dp)
                                         .background(Color.Black)
                                         .padding(8.dp)
-                                        .clickable(enabled = !state.loading && loading == null) {
+                                        .clickable(enabled = !state.loading) {
                                             FilesService.download(context = context, fd = fd)
                                         },
-                                    text = text,
+                                    text = "download",
                                     style = TextStyle(color = Color.White),
                                 )
                             }

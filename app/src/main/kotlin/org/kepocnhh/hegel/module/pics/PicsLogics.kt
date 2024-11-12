@@ -71,7 +71,7 @@ internal class PicsLogics(
             )
             val pics = injection.storages.require<Pic>()
             val payload = pics.require(id = id)
-            injection.dirs.files.resolve(fd.name()).writeBytes(bytes)
+            injection.dirs.files.resolve(fd.uri.toString()).writeBytes(bytes)
             pics.update(id = id, value = payload.value.copy(fd = fd))
             Items(list = pics.items)
         }
@@ -81,12 +81,12 @@ internal class PicsLogics(
     private fun detachFile(pics: MutableStorage<Pic>, payload: Payload<Pic>) {
         val fd = payload.value.fd ?: return
         pics.update(id = payload.meta.id, value = payload.value.copy(fd = null))
-        injection.dirs.files.resolve(fd.name()).delete()
+        injection.dirs.files.resolve(fd.uri.toString()).delete()
     }
 
     private fun deleteFile(payload: Payload<Pic>) {
         val fd = payload.value.fd ?: return
-        injection.dirs.files.resolve(fd.name()).delete()
+        injection.dirs.files.resolve(fd.uri.toString()).delete()
     }
 
     fun detachFile(id: UUID) = launch {

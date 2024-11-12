@@ -10,26 +10,22 @@ import androidx.core.app.NotificationCompat
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.kepocnhh.hegel.App
 import org.kepocnhh.hegel.BuildConfig
 import org.kepocnhh.hegel.entity.FileDelegate
 import org.kepocnhh.hegel.entity.FileDelegateParcelable
-import org.kepocnhh.hegel.entity.FileRequest
-import org.kepocnhh.hegel.provider.BytesLoader
-import org.kepocnhh.hegel.provider.FinalBytesLoader
-import java.io.File
+import org.kepocnhh.hegel.provider.FinalBytesRequester
+import org.kepocnhh.hegel.provider.FinalBytesWrapper
+import sp.kx.bytes.loader.BytesLoader
 import kotlin.math.absoluteValue
 
 internal class FilesService : LifecycleService() {
     private val logger = App.injection.loggers.create("[Files|Service]")
     private val N_ID: Int = System.currentTimeMillis().plus(hashCode()).toInt().absoluteValue
 
+    /* todo
     private fun onState(queue: BytesLoader<String>.BytesQueue) {
         logger.debug("queue: $queue")
         val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
@@ -46,6 +42,7 @@ internal class FilesService : LifecycleService() {
             )
         }
     }
+    */
 
     private fun buildNotification(
         context: Context,
@@ -75,7 +72,7 @@ internal class FilesService : LifecycleService() {
             nm.createNotificationChannel(channel)
         }
         lifecycleScope.launch {
-            states.flowWithLifecycle(lifecycle).collect(::onState)
+//            states.flowWithLifecycle(lifecycle).collect(::onState) // todo
         }
     }
 
@@ -178,7 +175,11 @@ internal class FilesService : LifecycleService() {
                     ?: error("No file delegate!")
                 lifecycleScope.launch {
                     withContext(App.injection.contexts.default) {
-                        loader.load(key = fd.name(), size = fd.size, hash = fd.hash)
+                        loader.add(
+                            uri = fd.uri,
+                            size = fd.size,
+                            hash = fd.hash,
+                        )
                     }
                 }
             }
@@ -195,11 +196,21 @@ internal class FilesService : LifecycleService() {
     }
 
     companion object {
-        private val loader: BytesLoader<String> = FinalBytesLoader()
+        private val loader = BytesLoader(
+            factory = FinalBytesWrapper.Factory(
+                dirs = App.injection.dirs,
+                secrets = App.injection.secrets,
+            ),
+            requester = FinalBytesRequester(
+                locals = App.injection.locals,
+                remotes = App.injection.remotes,
+            ),
+            count = 1 shl 16,
+        )
         private val NC_ID = "f6d353de-3d4d-4abf-8f6b-053c5ccdec09"
 
         val events = loader.events
-        val states = loader.states
+//        val states = loader.states // todo
 
         fun download(context: Context, fd: FileDelegate) {
             val intent = Intent(context, FilesService::class.java)

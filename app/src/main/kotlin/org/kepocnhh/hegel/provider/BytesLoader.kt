@@ -6,7 +6,8 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.util.concurrent.atomic.AtomicBoolean
 
-abstract class BytesLoader<K : Any> {
+@Deprecated("sp.kx.bytes.loader.BytesLoader")
+abstract class BytesLoaderOld<K : Any> {
     sealed interface Event<K : Any> {
         class OnLoad<K : Any>(val key: K) : Event<K>
         class OnError<K : Any>(val key: K, val error: Throwable) : Event<K>

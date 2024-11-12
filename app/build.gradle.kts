@@ -134,6 +134,7 @@ dependencies {
     implementation(compose.foundation)
     implementation("androidx.security:security-crypto:1.0.0")
     implementation("com.github.kepocnhh:Bytes:0.2.1-SNAPSHOT")
+    implementation("com.github.kepocnhh:BytesLoader:0.1.0u-SNAPSHOT")
     implementation("com.github.kepocnhh:HttpReceiver:0.1.1u-SNAPSHOT")
     implementation("com.github.kepocnhh:Logics:0.1.3-SNAPSHOT")
     implementation("com.github.kepocnhh:Storages:0.10.0u-SNAPSHOT")

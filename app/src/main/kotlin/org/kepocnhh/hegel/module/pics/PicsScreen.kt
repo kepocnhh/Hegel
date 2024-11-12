@@ -5,14 +5,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import org.kepocnhh.hegel.App
 import org.kepocnhh.hegel.module.files.FilesService
-import org.kepocnhh.hegel.provider.BytesLoader
+import sp.kx.bytes.loader.BytesLoader
 import kotlin.math.absoluteValue
 
 @Composable
 internal fun PicsScreen(onBack: () -> Unit) {
+    val logger = remember { App.injection.loggers.create("[Pics|Screen]") }
     val logics = App.logics<PicsLogics>()
     val state = logics.state.collectAsState().value
     val items = logics.items.collectAsState().value
@@ -23,11 +25,11 @@ internal fun PicsScreen(onBack: () -> Unit) {
     LaunchedEffect(Unit) {
         FilesService.events.collect { event ->
             when (event) {
-                is BytesLoader.Event.OnLoad<String> -> {
+                is BytesLoader.Event.OnLoad -> {
                     logics.requestItems()
                 }
                 is BytesLoader.Event.OnError -> {
-                    // todo
+                    logger.warning("File download error: ${event.error}")
                 }
             }
         }

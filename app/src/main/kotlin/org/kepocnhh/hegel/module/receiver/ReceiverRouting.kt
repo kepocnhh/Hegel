@@ -46,14 +46,13 @@ internal class ReceiverRouting(
             val req = injection.serializer.remote.fileRequest.decode(decrypted)
             val index = req.index
             val count = req.count
-            val name = req.name
-            logger.debug("get bytes($index/$count) by: $name")
-            val file = injection.dirs.files.resolve(name)
+            val uri = req.uri
+            logger.debug("get bytes($index/$count) by: $uri")
+            val file = injection.dirs.files.resolve(uri.toString())
             if (!file.exists()) {
                 TLSResponse.NotFound()
             } else {
-                val size = file.length()
-                if (req.size != size) TODO("Size: $size, but req:size: ${req.size}!")
+                val size = file.length() // todo check size?
                 val bytes = ByteArray(kotlin.math.min(count, (size - index).toInt()))
                 logger.debug("try read ${bytes.size} bytes")
                 file.inputStream().use {

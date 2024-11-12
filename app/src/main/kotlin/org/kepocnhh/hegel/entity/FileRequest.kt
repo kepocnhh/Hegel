@@ -1,8 +1,9 @@
 package org.kepocnhh.hegel.entity
 
+import java.net.URI
+
 internal data class FileRequest(
-    val name: String,
-    val size: Long,
+    val uri: URI,
     val index: Long,
     val count: Int,
 )

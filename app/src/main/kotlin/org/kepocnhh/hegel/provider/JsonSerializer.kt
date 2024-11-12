@@ -25,6 +25,7 @@ import sp.kx.storages.SyncInfo
 import sp.kx.storages.SyncResponseTransformer
 import sp.kx.storages.SyncSession
 import sp.kx.storages.Transformer
+import java.net.URI
 import java.util.Base64
 import java.util.UUID
 import kotlin.time.Duration.Companion.milliseconds
@@ -392,8 +393,7 @@ internal class JsonSerializer(
                 return FileRequest(
                     index = obj.getLong("index"),
                     count = obj.getInt("count"),
-                    name = obj.getString("name"),
-                    size = obj.getLong("size"),
+                    uri = URI(obj.getString("uri")),
                 )
             }
 
@@ -401,8 +401,7 @@ internal class JsonSerializer(
                 return JSONObject()
                     .put("index", decoded.index)
                     .put("count", decoded.count)
-                    .put("name", decoded.name)
-                    .put("size", decoded.size)
+                    .put("uri", decoded.uri.toString())
                     .toString()
                     .toByteArray()
             }

@@ -1,15 +1,14 @@
 package org.kepocnhh.hegel.entity
 
 import sp.kx.bytes.toHEX
+import java.net.URI
 import java.util.Objects
 
 internal class FileDelegate(
     val hash: ByteArray,
     val size: Long,
 ) {
-    fun name(): String {
-        return hash.copyOf(16).toHEX()
-    }
+    val uri = URI(hash.copyOf(16).toHEX())
 
     override fun equals(other: Any?): Boolean {
         return when (other) {

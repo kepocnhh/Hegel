@@ -4,6 +4,7 @@ import org.kepocnhh.hegel.App
 import org.kepocnhh.hegel.entity.FileRequest
 import java.io.File
 
+/*
 internal class FinalBytesLoader : BytesLoader<String>() {
     private class FileBytesWrapper(name: String) : BytesWrapper {
         private val tmp: File = App.injection.dirs.cache.resolve(name)
@@ -45,3 +46,4 @@ internal class FinalBytesLoader : BytesLoader<String>() {
         return App.injection.remotes.files(address).getBytes(request = request)
     }
 }
+*/
