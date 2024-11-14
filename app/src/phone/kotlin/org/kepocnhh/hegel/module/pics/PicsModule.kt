@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
@@ -50,6 +51,7 @@ internal fun PicsScreen(
     onSetFile: (UUID, ByteArray) -> Unit,
     onDetachFile: (UUID) -> Unit,
     onDeleteFile: (UUID) -> Unit,
+    onDeleteFiles: () -> Unit,
 ) {
     val context = LocalContext.current
     val logger = remember { App.injection.loggers.create("[Pics]") }
@@ -103,6 +105,7 @@ internal fun PicsScreen(
             .background(Color.White),
     ) {
         val insets = WindowInsets.systemBars.asPaddingValues()
+        val filesState = FilesService.states.collectAsState().value
         LazyColumn(
             contentPadding = insets,
         ) {
@@ -170,8 +173,7 @@ internal fun PicsScreen(
                                     style = TextStyle(color = Color.White),
                                 )
                             } else {
-                                val queue = FilesService.states.collectAsState().value?.queue
-                                val bl = queue?.get(fd.uri)
+                                val bl = filesState?.queue?.get(fd.uri)
                                 val text = bl?.let {
                                     "loaded: ${FilesService.progress(bl = it)}%"
                                 } ?: "download"
@@ -219,6 +221,34 @@ internal fun PicsScreen(
                     )
                 }
                 Spacer(modifier = Modifier.weight(1f))
+                BasicText(
+                    modifier = Modifier
+                        .background(Color.Black)
+                        .padding(16.dp)
+                        .clickable(enabled = !state.loading && filesState == null) {
+                            for (it in items.list) {
+                                val fd = it.value.fd ?: continue
+                                val file = App.injection.dirs.files.resolve(fd.uri.toString())
+                                if (!file.exists()) {
+                                    FilesService.download(context = context, fd = fd)
+                                }
+                            }
+                        },
+                    text = "\\/",
+                    style = TextStyle(color = Color.White),
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                BasicText(
+                    modifier = Modifier
+                        .background(Color.Black)
+                        .padding(16.dp)
+                        .clickable(enabled = !state.loading && filesState == null) {
+                            onDeleteFiles()
+                        },
+                    text = "-f",
+                    style = TextStyle(color = Color.White),
+                )
+                Spacer(modifier = Modifier.width(8.dp))
                 BasicText(
                     modifier = Modifier
                         .background(Color.Black)

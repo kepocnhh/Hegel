@@ -58,5 +58,8 @@ internal fun PicsScreen(onBack: () -> Unit) {
         onDeleteFile = { id ->
             logics.deleteFile(id = id)
         },
+        onDeleteFiles = {
+            logics.deleteFiles()
+        },
     )
 }

@@ -109,4 +109,17 @@ internal class PicsLogics(
         }
         _state.value = State(loading = false)
     }
+
+    fun deleteFiles() = launch {
+        logger.debug("delete files...")
+        _state.value = State(loading = true)
+        _items.value = withContext(injection.contexts.default) {
+            val pics = injection.storages.require<Pic>()
+            pics.items.forEach {
+                deleteFile(payload = it)
+            }
+            Items(list = pics.items)
+        }
+        _state.value = State(loading = false)
+    }
 }

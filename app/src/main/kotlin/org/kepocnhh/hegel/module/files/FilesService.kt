@@ -129,8 +129,8 @@ internal class FilesService : LifecycleService() {
                 remotes = App.injection.remotes,
             ),
 //            count = 1 shl 10, //     1_024
-            count = 1 shl 16, //    65_536
-//            count = 1 shl 18, //   262_144
+//            count = 1 shl 16, //    65_536
+            count = 1 shl 18, //   262_144
 //            count = 1 shl 20, // 1_048_576
         )
         private val NC_ID = "f6d353de-3d4d-4abf-8f6b-053c5ccdec09"
@@ -138,6 +138,7 @@ internal class FilesService : LifecycleService() {
         val events = loader.events
         val states = loader.states
 
+        // todo downloadAll
         fun download(context: Context, fd: FileDelegate) {
             val intent = Intent(context, FilesService::class.java)
             intent.action = "download"
