@@ -170,21 +170,20 @@ internal fun PicsScreen(
                                     style = TextStyle(color = Color.White),
                                 )
                             } else {
-                                // todo
-//                                val queue = FilesService.states.collectAsState().value
-//                                val loading = queue.states[fd.name()]
-//                                val text = loading?.let {
-//                                    "loaded: ${it.progress()}%"
-//                                } ?: "download"
+                                val queue = FilesService.states.collectAsState().value?.queue
+                                val bl = queue?.get(fd.uri)
+                                val text = bl?.let {
+                                    "loaded: ${FilesService.progress(bl = it)}%"
+                                } ?: "download"
                                 BasicText(
                                     modifier = Modifier
                                         .padding(2.dp)
                                         .background(Color.Black)
                                         .padding(8.dp)
-                                        .clickable(enabled = !state.loading) {
+                                        .clickable(enabled = !state.loading && bl == null) {
                                             FilesService.download(context = context, fd = fd)
                                         },
-                                    text = "download",
+                                    text = text,
                                     style = TextStyle(color = Color.White),
                                 )
                             }

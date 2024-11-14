@@ -18,6 +18,7 @@ import org.kepocnhh.hegel.entity.FileDelegate
 import org.kepocnhh.hegel.entity.FileDelegateParcelable
 import org.kepocnhh.hegel.provider.FinalBytesRequester
 import org.kepocnhh.hegel.provider.FinalBytesWrapper
+import sp.kx.bytes.loader.BytesLoaded
 import sp.kx.bytes.loader.BytesLoader
 import kotlin.math.absoluteValue
 
@@ -210,7 +211,7 @@ internal class FilesService : LifecycleService() {
         private val NC_ID = "f6d353de-3d4d-4abf-8f6b-053c5ccdec09"
 
         val events = loader.events
-//        val states = loader.states // todo
+        val states = loader.states
 
         fun download(context: Context, fd: FileDelegate) {
             val intent = Intent(context, FilesService::class.java)
@@ -223,6 +224,10 @@ internal class FilesService : LifecycleService() {
             val intent = Intent(context, FilesService::class.java)
             intent.action = "stop"
             context.startService(intent)
+        }
+
+        fun progress(bl: BytesLoaded): Int {
+            return (bl.loaded.toDouble() / bl.size * 100).toInt()
         }
     }
 }
