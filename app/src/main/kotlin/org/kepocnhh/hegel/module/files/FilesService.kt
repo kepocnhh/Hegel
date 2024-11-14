@@ -26,24 +26,22 @@ internal class FilesService : LifecycleService() {
     private val logger = App.injection.loggers.create("[Files|Service]")
     private val N_ID: Int = System.currentTimeMillis().plus(hashCode()).toInt().absoluteValue
 
-    /* todo
-    private fun onState(queue: BytesLoader<String>.BytesQueue) {
-        logger.debug("queue: $queue")
+    private fun onState(state: BytesLoader.State?) {
         val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        if (queue.states.isEmpty()) {
+        if (state == null) {
+            logger.debug("no state")
             stopForeground(STOP_FOREGROUND_REMOVE)
             nm.cancel(N_ID)
         } else {
-            val key = queue.current ?: TODO("No current!")
-            val current = queue.states[key] ?: TODO("No state by $key!")
+            logger.debug("queue: ${state.queue}\ncurrent: ${state.current}")
+            val bl = state.queue[state.current] ?: TODO("No state by ${state.current}!")
             nm.startForeground(
                 context = this,
-                text = "$key\n${current.loaded}/${current.size}",
-                progress = current.progress(),
+                text = "${state.current}\n${bl.loaded}/${bl.size}",
+                progress = progress(bl = bl),
             )
         }
     }
-    */
 
     private fun buildNotification(
         context: Context,
@@ -73,7 +71,7 @@ internal class FilesService : LifecycleService() {
             nm.createNotificationChannel(channel)
         }
         lifecycleScope.launch {
-//            states.flowWithLifecycle(lifecycle).collect(::onState) // todo
+            states.flowWithLifecycle(lifecycle).collect(::onState)
         }
     }
 
@@ -90,82 +88,6 @@ internal class FilesService : LifecycleService() {
         notify(N_ID, notification)
         startForeground(N_ID, notification)
     }
-
-/*
-    private suspend fun postDownload(fd: FileDelegate, tmp: File) {
-        val queue = HashMap(states.value.queue)
-        val name = fd.name()
-        val loaded = tmp.length()
-        if (loaded > fd.size) TODO("Read $loaded, but fd:size: ${fd.size}!")
-        if (loaded == fd.size) {
-            val hash = App.injection.secrets.hash(tmp.readBytes())
-            if (!fd.hash.contentEquals(hash)) TODO("Hashes error!")
-            if (App.injection.dirs.files.resolve(name).exists()) TODO("file: $name exists!")
-            tmp.renameTo(App.injection.dirs.files.resolve(name))
-            queue.remove(fd)
-            logger.debug("finish download: $name")
-            _events.emit(Event.OnDownload(fd = fd))
-        } else {
-            queue[fd] = loaded
-        }
-        _states.value = State(queue = queue, current = null)
-    }
-*/
-
-/*
-    private fun download(fd: FileDelegate, loaded: Long): File {
-        logger.debug("start download: ${fd.name()}")
-        val address = App.injection.locals.address ?: error("No address!")
-        val name = fd.name()
-        val tmp = App.injection.dirs.cache.resolve(name)
-        val index: Long
-        if (loaded == 0L) {
-            tmp.delete()
-            index = 0
-        } else {
-            if (tmp.length() != loaded) TODO("Length: ${tmp.length()}, but loaded: $loaded!")
-            index = loaded
-        }
-        val count = 2 shl 10
-//        val count = 2 shl 16
-        val request = FileRequest(
-            name = name,
-            size = fd.size,
-            index = index,
-            count = kotlin.math.min(count, (fd.size - index).toInt()),
-        )
-        val bytes = App.injection.remotes.files(address).getBytes(request = request)
-        tmp.appendBytes(bytes)
-        logger.debug("${request.index}] read $name ${bytes.size}/${fd.size}")
-        return tmp
-    }
-*/
-
-/*
-    private fun perform() {
-        val state = states.value
-        if (state.current != null) return
-        val (fd, loaded) = state.queue.entries.firstOrNull() ?: return
-        _states.value = state.copy(current = fd)
-        logger.debug("perform:download: $fd")
-        lifecycleScope.launch {
-            withContext(App.injection.contexts.default) {
-                runCatching {
-                    val tmp = download(fd = fd, loaded = loaded)
-                    if (states.value.queue.containsKey(fd)) postDownload(fd = fd, tmp = tmp)
-                }
-            }.fold(
-                onSuccess = {
-                    perform()
-                },
-                onFailure = { error: Throwable ->
-                    logger.warning("download ${fd.name()} error: $error")
-                    _states.value = State(queue = emptyMap(), current = null)
-                },
-            )
-        }
-    }
-*/
 
     private fun onStartCommand(intent: Intent) {
         logger.debug("command:${intent.action}")
@@ -206,7 +128,10 @@ internal class FilesService : LifecycleService() {
                 locals = App.injection.locals,
                 remotes = App.injection.remotes,
             ),
-            count = 1 shl 16,
+//            count = 1 shl 10, //     1_024
+            count = 1 shl 16, //    65_536
+//            count = 1 shl 18, //   262_144
+//            count = 1 shl 20, // 1_048_576
         )
         private val NC_ID = "f6d353de-3d4d-4abf-8f6b-053c5ccdec09"
 
