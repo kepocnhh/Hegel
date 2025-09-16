@@ -1,5 +1,5 @@
-import sp.gx.core.buildDir
-import sp.gx.core.buildSrc
+import sp.kx.gradlex.buildDir
+import sp.kx.gradlex.buildSrc
 
 buildscript {
     repositories {
@@ -8,7 +8,7 @@ buildscript {
     }
 
     dependencies {
-        classpath("com.android.tools.build:gradle:8.2.2")
+        classpath("com.android.tools.build:gradle:8.8.2")
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${Version.kotlin}")
     }
 }

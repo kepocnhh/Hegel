@@ -1,10 +1,10 @@
 object Version {
-    const val compose = "1.6.2"
+    const val compose = "1.7.3"
     const val jvmTarget = "17"
-    const val kotlin = "1.9.20"
+    const val kotlin = "1.9.25"
 
     object Android {
-        const val compileSdk = 34
+        const val compileSdk = 35
         const val minSdk = 28
         const val targetSdk = compileSdk
     }

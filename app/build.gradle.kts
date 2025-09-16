@@ -1,42 +1,17 @@
-import com.android.build.api.variant.ComponentIdentity
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-import sp.gx.core.camelCase
-import sp.gx.core.create
-import sp.gx.core.getByName
-import sp.gx.core.kebabCase
+import sp.kx.gradlex.camelCase
+import sp.kx.gradlex.create
 
 repositories {
     google()
     mavenCentral()
-    maven("https://s01.oss.sonatype.org/content/repositories/snapshots")
+    maven("https://central.sonatype.com/repository/maven-snapshots") // todo
 }
 
 plugins {
     id("com.android.application")
     id("kotlin-android")
     id("org.jetbrains.compose") version Version.compose
-}
-
-fun ComponentIdentity.getVersion(): String {
-    val flavors = productFlavors.map { (it, _) -> it }
-//    check(flavors.isEmpty()) { "Flavors \"$flavorName\" are not supported!" } // todo
-    val versionName = android.defaultConfig.versionName ?: error("No version name!")
-    check(versionName.isNotBlank())
-    val versionCode = android.defaultConfig.versionCode ?: error("No version code!")
-    check(versionCode > 0)
-    check(name.isNotBlank())
-    return when (buildType) {
-        "debug" -> kebabCase(
-            versionName,
-            name,
-            versionCode.toString(),
-        )
-        "release" -> kebabCase(
-            versionName,
-            versionCode.toString(),
-        )
-        else -> error("Build type \"${buildType}\" is not supported!")
-    }
 }
 
 android {
@@ -85,12 +60,17 @@ android {
 androidComponents.onVariants { variant ->
     val output = variant.outputs.single()
     check(output is com.android.build.api.variant.impl.VariantOutputImpl)
-    output.outputFileName = "${kebabCase(rootProject.name, variant.getVersion())}.apk"
+    output.outputFileName = listOf(
+        rootProject.name,
+        android.defaultConfig.versionName!!,
+        variant.name,
+        android.defaultConfig.versionCode!!.toString(),
+    ).joinToString(separator = "-", postfix = ".apk")
     afterEvaluate {
-        tasks.getByName<JavaCompile>("compile", variant.name, "JavaWithJavac") {
+        tasks.getByName<JavaCompile>(camelCase("compile", variant.name, "JavaWithJavac")) { // todo camelCase
             targetCompatibility = Version.jvmTarget
         }
-        tasks.getByName<KotlinCompile>("compile", variant.name, "Kotlin") {
+        tasks.getByName<KotlinCompile>(camelCase("compile", variant.name, "Kotlin")) { // todo camelCase
             kotlinOptions.jvmTarget = Version.jvmTarget
         }
         val checkManifestTask = tasks.create("checkManifest", variant.name) {
@@ -133,9 +113,11 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation(compose.foundation)
     implementation("androidx.security:security-crypto:1.0.0")
-    implementation("com.github.kepocnhh:Bytes:0.2.1-SNAPSHOT")
+    implementation("com.github.kepocnhh:Bytes:0.4.0")
+    implementation("com.github.kepocnhh:Secrets:0.2.0u-SNAPSHOT")
+    implementation("com.github.kepocnhh:TLSMessages:0.1.0u-SNAPSHOT")
+    implementation("com.github.kepocnhh:HttpReceiver:0.2.2u-SNAPSHOT")
     implementation("com.github.kepocnhh:BytesLoader:0.2.0u-SNAPSHOT")
-    implementation("com.github.kepocnhh:HttpReceiver:0.1.1u-SNAPSHOT")
     implementation("com.github.kepocnhh:Logics:0.1.3-SNAPSHOT")
     implementation("com.github.kepocnhh:Storages:0.10.0u-SNAPSHOT")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
