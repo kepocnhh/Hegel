@@ -1,10 +1,16 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import sp.kx.gradlex.buildDir
 import sp.kx.gradlex.camelCase
 import sp.kx.gradlex.create
+import sp.kx.gradlex.map
+import sp.kx.gradlex.qn
+import sp.kx.gradlex.string
+import sp.kx.gradlex.xml
 
 repositories {
     google()
     mavenCentral()
+    maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
     maven("https://central.sonatype.com/repository/maven-snapshots") // todo
 }
 
@@ -42,7 +48,7 @@ android {
         buildConfig = true
     }
 
-    composeOptions.kotlinCompilerExtensionVersion = "1.5.14"
+    composeOptions.kotlinCompilerExtensionVersion = "1.5.15"
 
     productFlavors {
         "device".also { dimension ->
@@ -76,15 +82,11 @@ androidComponents.onVariants { variant ->
         val checkManifestTask = tasks.create("checkManifest", variant.name) {
             dependsOn(camelCase("compile", variant.name, "Sources"))
             doLast {
-                val file = "intermediates/merged_manifest/${variant.name}/AndroidManifest.xml"
-                val manifest = groovy.xml.XmlParser().parse(layout.buildDirectory.file(file).get().asFile)
-                val actual = manifest.getAt(groovy.namespace.QName("uses-permission")).map {
-                    check(it is groovy.util.Node)
-                    val attributes = it.attributes().mapKeys { (k, _) -> k.toString() }
-                    val name = attributes["{http://schemas.android.com/apk/res/android}name"]
-                    check(name is String && name.isNotEmpty())
-                    name
-                }
+                val actual = buildDir()
+                    .xml("intermediates/merged_manifest/${variant.name}/AndroidManifest.xml")
+                    .map("uses-permission".qn()) {
+                        it.string("{http://schemas.android.com/apk/res/android}name".qn())
+                    }
                 val applicationId by variant.applicationId
                 val expected = setOf(
                     "android.permission.INTERNET",
@@ -105,12 +107,11 @@ androidComponents.onVariants { variant ->
 }
 
 dependencies {
-    implementation("androidx.lifecycle:lifecycle-service:2.8.6")
     debugImplementation("androidx.compose.ui:ui-tooling:${Version.compose}")
     debugImplementation("androidx.compose.ui:ui-tooling-preview:${Version.compose}")
     debugImplementation("androidx.wear:wear-tooling-preview:1.0.0")
-    implementation("androidx.activity:activity-compose:1.9.1")
-    implementation("androidx.appcompat:appcompat:1.7.0")
+    implementation("androidx.activity:activity-compose:1.10.1")
+    implementation("androidx.lifecycle:lifecycle-service:2.8.6")
     implementation(compose.foundation)
     implementation("androidx.security:security-crypto:1.0.0")
     implementation("com.github.kepocnhh:Bytes:0.4.0")
